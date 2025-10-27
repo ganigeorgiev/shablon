@@ -1,0 +1,34 @@
+{
+    "version": "0.0.1",
+    "name": "shablon",
+    "description": "No-build JavaScript framework for Single-page applications",
+    "author": "Gani Georgiev",
+    "license": "MIT",
+    "type": "module",
+    "exports": "./index.js",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/ganigeorgiev/shablon.git"
+    },
+    "keywords": [
+        "frontend",
+        "js-framework",
+        "no-build",
+        "spa"
+    ],
+    "scripts": {
+        "build": "rolldown -c",
+        "format": "npx prettier ./src --write",
+        "prepublishOnly": "npm run build"
+    },
+    "devDependencies": {
+        "jsdom": "^26.0.0",
+        "prettier": "^3.6.2",
+        "rolldown": "^1.0.0-beta.44"
+    },
+    "prettier": {
+        "tabWidth": 4,
+        "printWidth": 90,
+        "bracketSameLine": true
+    }
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shablon SPA example</title>
+    <!--
+        Or alternatively you can also use ESM in the browser with the ../dist/shablon.es.js bundle
+        (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules).
+    -->
+    <script src="../dist/shablon.iife.js"></script>
+    <script src="header.js"></script>
+    <script src="page0.js"></script>
+    <script src="page1.js"></script>
+    <script src="page2.js"></script>
+
+    <style type="text/css">
+        ::view-transition-group(root) {
+            animation-duration: 100ms;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script type="text/javascript">
+        const app = document.getElementById("app")
+
+        // https://github.com/ganigeorgiev/shablon/#user-content-api.router
+        router({
+            "#/": (route) => {
+                app.replaceChildren(page0());
+            },
+            "#/page1": (route) => {
+                app.replaceChildren(page1());
+
+                return () => {
+                    console.log("destroy page1...")
+                }
+            },
+            "#/page2": (route) => {
+                app.replaceChildren(page2());
+            },
+        })
+    </script>
+</body>
+</html>
