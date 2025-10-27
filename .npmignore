@@ -2,6 +2,7 @@ dist
 example
 rolldown.config.js
 todo.todo
+*.test.js
 
 # generated markdown previews
 README.html
