@@ -1,5 +1,5 @@
 {
-    "version": "0.0.1",
+    "version": "0.0.1-rc.2",
     "name": "shablon",
     "description": "No-build JavaScript framework for Single-page applications",
     "author": "Gani Georgiev",

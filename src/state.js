@@ -37,7 +37,7 @@ let onRemoveSym = Symbol();
  */
 export function watch(callback) {
     let watcher = {
-        [idSym]: "" + Math.random(),
+        [idSym]: "_" + Math.random(),
     };
 
     allWatchers.set(watcher[idSym], watcher);

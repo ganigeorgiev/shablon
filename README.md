@@ -112,10 +112,8 @@ You can find the bundle file at [`dist/shablon.iife.js`](https://github.com/gani
 
 #### ES module (browsers and npm)
 
-Alternatively, you can load the package as ES module by using the [`dist/shablon.es.js`](https://github.com/ganigeorgiev/shablon/blob/master/dist/shablon.es.js) file.
-
-<!-- Alternatively, you can load the package as ES module either by using the [`dist/shablon.es.js`](https://github.com/ganigeorgiev/shablon/blob/master/dist/shablon.es.js) file or
-importing it from [npm](https://www.npmjs.com/package/shablon). -->
+Alternatively, you can load the package as ES module either by using the [`dist/shablon.es.js`](https://github.com/ganigeorgiev/shablon/blob/master/dist/shablon.es.js) file or
+importing it from [npm](https://www.npmjs.com/package/shablon).
 
 - browsers:
     ```html
@@ -127,7 +125,7 @@ importing it from [npm](https://www.npmjs.com/package/shablon). -->
         ...
     </script>
     ```
-<!--
+
 - npm (`npm -i shablon`):
     ```js
     import { t, store, watch, router } from "shablon"
@@ -135,7 +133,7 @@ importing it from [npm](https://www.npmjs.com/package/shablon). -->
     const data = store({ count: 0 })
     ...
     ```
- -->
+
 ## API
 <details>
 <summary><strong id="api.store">store(obj)</strong></summary>
