@@ -24,7 +24,7 @@
     "devDependencies": {
         "jsdom": "^26.0.0",
         "prettier": "^3.6.2",
-        "rolldown": "^1.0.0-beta.44"
+        "rolldown": "^1.0.0-beta.50"
     },
     "prettier": {
         "tabWidth": 4,
