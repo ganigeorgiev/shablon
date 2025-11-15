@@ -218,8 +218,8 @@ When a reactive function is set as attribute value or child, it is invoked only 
 
 Each constructed tag has 3 additional optional lifecycle attributes:
 
-- `onmount: func` - optional callback called when the element is inserted in the DOM
-- `onunmount: func` - optional callback called when the element is removed from the DOM
+- `onmount: func(el)` - optional callback called when the element is inserted in the DOM
+- `onunmount: func(el)` - optional callback called when the element is removed from the DOM
 - `rid: any` - "replacement id" is an identifier based on which we can decide whether to reuse the element or not during rerendering (e.g. on list change); the value could be anything comparable with `==`
 
 </details>

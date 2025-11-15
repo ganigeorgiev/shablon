@@ -148,6 +148,10 @@ function createProxy(obj, pathWatcherIds) {
 
     let handler = {
         get(obj, prop, target) {
+            if (prop === "__raw") {
+                return obj;
+            }
+
             // getter?
             let getterProp;
             if (descriptors[prop]?.get) {

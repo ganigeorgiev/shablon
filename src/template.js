@@ -61,7 +61,7 @@ function initMutationObserver() {
     function recursiveObserveCall(method, nodes) {
         for (let n of nodes) {
             if (n[method]) {
-                n[method]();
+                n[method](n);
             }
             if (n.childNodes) {
                 recursiveObserveCall(method, n.childNodes);
@@ -116,9 +116,9 @@ function tag(tagName, attrs = {}, ...children) {
                     }
 
                     if (useSetAttr) {
-                        el.setAttribute(attr, val());
+                        el.setAttribute(attr, val(el));
                     } else {
-                        el[attr] = val();
+                        el[attr] = val(el);
                     }
                 });
             }
@@ -140,7 +140,7 @@ function tag(tagName, attrs = {}, ...children) {
             }
         }
 
-        customMount?.();
+        customMount?.(el);
     };
 
     let customUnmount = el.onunmount;
@@ -165,7 +165,7 @@ function tag(tagName, attrs = {}, ...children) {
         }
         el[cleanupFuncsSym] = null;
 
-        customUnmount?.();
+        customUnmount?.(el);
     };
 
     setChildren(el, children);
@@ -177,14 +177,17 @@ function setChildren(el, children) {
     children = toArray(children);
 
     for (let childOrFunc of children) {
-        if (Array.isArray(childOrFunc)) {
-            // nested array
-            setChildren(el, childOrFunc);
-        } else if (typeof childOrFunc == "function") {
+        if (typeof childOrFunc == "function") {
             initChildrenFuncWatcher(el, childOrFunc);
         } else {
-            // plain elem
-            el.appendChild(normalizeNode(childOrFunc));
+            let normalized = normalizeNode(childOrFunc);
+            if (Array.isArray(normalized)) {
+                // nested array
+                setChildren(el, normalized);
+            } else if (normalized) {
+                // plain elem
+                el.appendChild(normalized);
+            }
         }
     }
 }
@@ -211,7 +214,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
             return;
         }
 
-        let newChildren = toArray(childrenFunc());
+        let newChildren = toArray(childrenFunc(el));
         let totalNewLength = newChildren.length;
         let newKeysMap = new Map();
 
@@ -399,6 +402,11 @@ function normalizeNode(child) {
         let childNode = document.createTextNode(child);
         childNode.rid = child;
         return childNode;
+    }
+
+    // in case child is DOM Proxy element/array loaded from a store object
+    if (typeof child?.__raw != "undefined") {
+        return child.__raw
     }
 
     return child;
