@@ -33,7 +33,7 @@ describe("default router", async () => {
     });
 
     test("home", async () => {
-        window.location.hash = "/";
+        window.location.hash = "#/";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -44,7 +44,7 @@ describe("default router", async () => {
     });
 
     test("home (with query params)", async () => {
-        window.location.hash = "/?a=1&b=2&a=3";
+        window.location.hash = "#/?a=1&b=2&a=3";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -55,7 +55,7 @@ describe("default router", async () => {
     });
 
     test("route with 1 parameter", async () => {
-        window.location.hash = "/users/example/abc?a=1&b=2&a=3";
+        window.location.hash = "#/users/example/abc?a=1&b=2&a=3";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -66,7 +66,7 @@ describe("default router", async () => {
     });
 
     test("route with 2 parameters", async () => {
-        window.location.hash = "/users/example/abc/delete?a=1&b=2&a=3";
+        window.location.hash = "#/users/example/abc/delete?a=1&b=2&a=3";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -78,8 +78,12 @@ describe("default router", async () => {
     });
 
     test("missing route", async () => {
-        window.location.hash = "missing";
+        window.location.hash = "#/missing";
 
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // wait again to ensure that it is cheched after the redirect event listener change
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(match.pattern, "#/", "pattern");

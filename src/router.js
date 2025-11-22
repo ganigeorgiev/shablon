@@ -43,12 +43,16 @@ export function router(routes, options = { fallbackPath: "#/", transition: true 
     let prevDestroy;
 
     let onHashChange = () => {
-        let path = window.location.hash || options.fallbackPath;
+        let path = window.location.hash;
 
-        let route =
-            findActiveRoute(defs, path) || findActiveRoute(defs, options.fallbackPath);
+        let route = findActiveRoute(defs, path);
         if (!route) {
-            console.warn("no route found");
+            if (options.fallbackPath != path) {
+                window.location.hash = options.fallbackPath;
+                return
+            }
+
+            console.warn("missing route:", path);
             return;
         }
 
@@ -57,7 +61,7 @@ export function router(routes, options = { fallbackPath: "#/", transition: true 
                 await prevDestroy?.();
                 prevDestroy = await route.handler(route);
             } catch (err) {
-                console.warn("Route navigation failed:", err);
+                console.warn("route navigation failed:", err);
             }
         };
 
