@@ -120,7 +120,7 @@ function prepareRoutes(routes) {
                 parts[i].endsWith("}")
             ) {
                 // param
-                parts[i] = "(?<" + parts[i].substring(1, parts[i].length - 1) + ">\\w+)";
+                parts[i] = "(?<" + parts[i].substring(1, parts[i].length - 1) + ">[^\\/#?]+)";
             } else {
                 // regular path segment
                 parts[i] = RegExp.escape(parts[i]);

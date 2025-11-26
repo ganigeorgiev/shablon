@@ -54,14 +54,14 @@ describe("default router", async () => {
         assert.deepStrictEqual(destroyed, {}, "destroyed");
     });
 
-    test("route with 1 parameter", async () => {
-        window.location.hash = "#/users/example/abc?a=1&b=2&a=3";
+    test("route with 1 parameter (with special chars)", async () => {
+        window.location.hash = "#/users/ex.am-%ple_/abc?a=1&b=2&a=3";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(match.pattern, "#/users/{id}/abc", "pattern");
         assert.deepStrictEqual(match.query, { a: ["1", "3"], b: ["2"] }, "query");
-        assert.strictEqual(match.params.id, "example", "params.id");
+        assert.strictEqual(match.params.id, "ex.am-%ple_", "params.id");
         assert.deepStrictEqual(destroyed, {}, "destroyed");
     });
 
