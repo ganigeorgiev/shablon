@@ -10,7 +10,7 @@ Shablon - No-build JavaScript frontend framework
 
 Shablon has very small learning curve (**4 main exported functions**) and it is suitable for building Single-page applications (SPA):
 
-- State: `store(obj)` and `watch(callback)`
+- State: `store(obj)` and `watch(trackedFunc, optUntrackedFunc)`
 - Template: `t.[tag](attrs, ...children)`
 - Router: `router(routes, options)`
 
@@ -166,12 +166,16 @@ data.activity = "rest"
 
 
 <details>
-<summary><strong id="api.watch">watch(callback)</strong></summary>
+<summary><strong id="api.watch">watch(trackedFunc, optUntrackedFunc)</strong></summary>
 
-Watch registers a callback function that fires once on initialization and
-every time any of its `store` reactive dependencies change.
+Watch registers a callback function that fires on initialization and
+every time any of its evaluated `store` reactive properties change.
 
-It returns a "watcher" object that could be used to `unwatch` the registered listener.
+It returns a "watcher" object that could be used to `unwatch()` the registered listener.
+
+_Optionally also accepts a second callback function that is excluded from the evaluated
+store props tracking and instead is invoked only when `trackedFunc` is called
+(could be used as a "track-only" watch pattern)._
 
 For example:
 
@@ -187,7 +191,31 @@ w.unwatch()
 data.count++ // doesn't trigger watch update
 ```
 
-Note that for reactive getters, initially the watch callback will be invoked twice because we register a second internal watcher to cache the getter value.
+"Track-only" pattern example:
+
+```js
+const data = store({
+    a: 0,
+    b: 0,
+    c: 0,
+})
+
+// watch only "a" and "b" props
+watch(() => [
+   data.a,
+   data.b,
+], () => {
+    console.log(data.a)
+    console.log(data.b)
+    console.log(data.c)
+})
+
+data.a++ // trigger watch update
+data.b++ // trigger watch update
+data.c++ // doesn't trigger watch update
+```
+
+Note that for reactive getters, initially the watch trackCallback will be invoked twice because we register a second internal watcher to cache the getter value.
 
 </details>
 

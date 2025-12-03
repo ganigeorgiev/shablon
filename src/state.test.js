@@ -861,3 +861,111 @@ describe("excluded types", async () => {
         assert.strictEqual(fired.aFuncCall, 1, "fired.aFuncCall");
     });
 });
+
+describe("dependencies tracking on watch func reruns", async () => {
+    let fired = 0;
+
+    const data = store({
+        a: 0,
+        b: 0,
+        c: 0,
+    });
+
+    watch(() => {
+        if (data.a > 0) {
+            data.b
+        } else {
+            data.c
+        }
+        fired++
+    })
+
+    beforeEach(() => {
+        fired = 0;
+    })
+
+    test("updating c should fire", async () => {
+        data.c++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 1);
+    });
+
+    test("updating b should NOT fire", async () => {
+        data.b++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 0);
+    });
+
+    test("updating a should fire (and enable b tracking)", async () => {
+        data.a++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 1);
+    });
+
+    test("after a>0 updating b should fire", async () => {
+        data.b++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 1);
+    });
+
+    test("after a>0 updating c should NOT fire", async () => {
+        data.c++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 0);
+    });
+});
+
+describe("watch with optUntrackedFunc", async () => {
+    let fired = 0;
+
+    const data = store({
+        a: 0,
+        b: 0,
+        c: 0,
+    });
+
+    watch(() => [
+        data.a,
+        data.b,
+    ], () => {
+        fired++
+    })
+
+    beforeEach(() => {
+        fired = 0;
+    })
+
+    test("updating a should fire", async () => {
+        data.a++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 1);
+    });
+
+    test("updating b should fire", async () => {
+        data.b++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 1);
+    });
+
+    test("updating c should NOT fire", async () => {
+        data.c++
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired, 0);
+    });
+});

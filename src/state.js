@@ -7,6 +7,7 @@ let cleanTimeoutId;
 
 let idSym = Symbol();
 let parentSym = Symbol();
+let pathsResetedSym = Symbol();
 let childrenSym = Symbol();
 let pathsSubsSym = Symbol();
 let unwatchedSym = Symbol();
@@ -14,11 +15,15 @@ let onRemoveSym = Symbol();
 
 /**
  * Watch registers a callback function that fires on initialization and
- * every time any of its `store` reactive dependencies changes.
+ * every time any of its evaluated `store` reactive properties change.
  *
- * Returns a "watcher" object that could be used to `unwatch()` the registered listener.
+ * It returns a "watcher" object that could be used to `unwatch()` the registered listener.
  *
- * Example:
+ * Optionally also accepts a second callback function that is excluded from the evaluated
+ * store props tracking and instead is invoked only when `trackedFunc` is called
+ * (could be used as a "track-only" watch pattern).
+ *
+ * Simple example:
  *
  * ```js
  * const data = store({ count: 0 })
@@ -32,19 +37,47 @@ let onRemoveSym = Symbol();
  * data.count++ // doesn't trigger watch update
  * ```
  *
- * @param  {Function} callback
+ * "Track-only" example:
+ *
+ * ```js
+ * const data = store({
+ *     a: 0,
+ *     b: 0,
+ *     c: 0,
+ * })
+ *
+ * // watch only "a" and "b" props
+ * watch(() => [
+ *    data.a,
+ *    data.b,
+ * ], () => {
+ *     console.log(data.a)
+ *     console.log(data.b)
+ *     console.log(data.c)
+ * })
+ *
+ * data.a++ // trigger watch update
+ * data.b++ // trigger watch update
+ * data.c++ // doesn't trigger watch update
+ * ```
+ *
+ * @param {Function} trackedFunc
+ * @param {Function} [optUntrackedFunc]
  * @return {{unwatch:Function, last:any, run:Function}}
  */
-export function watch(callback) {
+export function watch(trackedFunc, optUntrackedFunc) {
     let watcher = {
         [idSym]: "_" + Math.random(),
-    };
+    }
 
     allWatchers.set(watcher[idSym], watcher);
 
     watcher.run = () => {
+        let oldActiveWatcher;
+
         // nested watcher -> register previous watcher as parent
         if (activeWatcher) {
+            oldActiveWatcher = activeWatcher
             watcher[parentSym] = activeWatcher[idSym];
 
             // store immediate children references for quicker cleanup
@@ -53,8 +86,14 @@ export function watch(callback) {
         }
 
         activeWatcher = watcher;
-        watcher.last = callback();
-        activeWatcher = allWatchers.get([watcher[parentSym]]); // restore parent ref (if any)
+        activeWatcher[pathsResetedSym] = false;
+        watcher.last = trackedFunc();
+
+        activeWatcher = null;
+        optUntrackedFunc?.();
+
+        // restore original ref (if any)
+        activeWatcher = oldActiveWatcher;
     };
 
     watcher.unwatch = function () {
@@ -126,7 +165,7 @@ function removeWatcher(id) {
  * Getters are also supported out of the box and they are invoked every
  * time when any of their dependencies change.
  * If a getter is used in a reactive function, its resulting value is cached,
- * aka. if the final value hasn't changed it will not trigger an unnecessery reactive update.
+ * aka. if the final value hasn't changed it will not trigger an unnecessary reactive update.
  *
  * Multiple changes from one or many stores are also automatically batched in a microtask.
  *
@@ -188,6 +227,42 @@ function createProxy(obj, pathWatcherIds) {
                 let currentPath = getPath(obj, prop);
                 let activeWatcherId = activeWatcher[idSym];
 
+                activeWatcher[pathsSubsSym] = activeWatcher[pathsSubsSym] || new Set();
+
+                // If this is a rerun of the watcher function, resets any previous
+                // tracking paths because after this new run some of the old
+                // dependencies may no longer be reachable/evaluatable.
+                //
+                // For example, in the below code:
+                //
+                // ```js
+                // const data = store({ a: 0, b: 0, c: 0 })
+                //
+                // watch(() => {
+                //     if (data.a > 0) {
+                //         data.b
+                //     } else {
+                //         data.c
+                //     }
+                // })
+                // ```
+                //
+                // initially ONLY "a" and "c" should be trackable because "b"
+                // is not reachable (aka. its getter is never invoked).
+                //
+                // If we increment `a++`, then in the new run  ONLY "a" and "b" should be trackable
+                // because this time "c" is not reachable (aka. its getter is never invoked)
+                // and its previous tracking should be removed for this watcher.
+                //
+                // Note: The below code works because it reuses the same "subs" reference as in pathWatcherIds
+                //       and this is intentional to avoid unnecessary iterations.
+                if (!activeWatcher[pathsResetedSym]) {
+                    activeWatcher[pathsSubsSym].forEach((subs) => {
+                        subs.delete(activeWatcherId)
+                    })
+                    activeWatcher[pathsResetedSym] = true;
+                }
+
                 let subs = pathWatcherIds.get(currentPath);
                 if (!subs) {
                     subs = new Set();
@@ -195,7 +270,6 @@ function createProxy(obj, pathWatcherIds) {
                 }
                 subs.add(activeWatcherId);
 
-                activeWatcher[pathsSubsSym] = activeWatcher[pathsSubsSym] || new Set();
                 activeWatcher[pathsSubsSym].add(subs);
 
                 // register a child watcher to update the custom getter prop replacement

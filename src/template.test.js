@@ -351,7 +351,7 @@ describe("reactive children", () => {
         assert.strictEqual(Object.keys(fired).length, 0, "fired.length");
     });
 
-    test("update children list", async () => {
+    test("update children list while data.count > 0", async () => {
         data.list.pop();
         data.list.push({ meta: 456 }); // no rid -> should rerender on the next update
         data.list[1].meta = 123;
