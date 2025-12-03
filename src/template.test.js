@@ -52,14 +52,18 @@ describe("tags creation", () => {
             t.span({ id: "span0" }),
             t.span({ id: "div1" }, t.span({ id: "div1.1" }), t.span({ id: "div1.2" })),
             "test_text",
+            123,
+            true,
         );
 
         assert.strictEqual(tag.tagName, "DIV");
-        assert.strictEqual(tag.childNodes.length, 3, "childNodes.length");
+        assert.strictEqual(tag.childNodes.length, 5, "childNodes.length");
         assert.strictEqual(tag.children.length, 2, "children.length");
         assert.strictEqual(tag.children[0].id, "span0");
         assert.strictEqual(tag.children[1].id, "div1");
         assert.strictEqual(tag.childNodes[2].textContent, "test_text");
+        assert.strictEqual(tag.childNodes[3].textContent, "123");
+        assert.strictEqual(tag.childNodes[4].textContent, "true");
         assert.strictEqual(
             tag.childNodes[1].childNodes.length,
             2,

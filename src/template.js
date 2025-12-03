@@ -398,7 +398,7 @@ function toArray(val) {
 
 function normalizeNode(child) {
     // wrap as TextNode so that it can be "tracked" and used with appendChild or other similar methods
-    if (typeof child == "string" || typeof child == "number") {
+    if (typeof child == "string" || typeof child == "number" || typeof child == "boolean") {
         let childNode = document.createTextNode(child);
         childNode.rid = child;
         return childNode;
