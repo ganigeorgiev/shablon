@@ -207,19 +207,21 @@ function createProxy(obj, pathWatcherIds) {
                 prop = "@" + prop;
             }
 
+            const propVal = obj[prop]
+
             // directly return symbols and functions (pop, push, etc.)
-            if (typeof prop == "symbol" || typeof obj[prop] == "function") {
-                return obj[prop];
+            if (typeof prop == "symbol" || typeof propVal == "function") {
+                return propVal;
             }
 
             // wrap child object or array as sub store
             if (
-                typeof obj[prop] == "object" &&
-                obj[prop] !== null &&
-                !obj[prop][parentSym]
+                propVal !== null && typeof propVal == "object" &&
+                !propVal[parentSym] &&
+                !isExcludedInstance(propVal)
             ) {
-                obj[prop][parentSym] = [obj, prop];
-                obj[prop] = createProxy(obj[prop], pathWatcherIds);
+                propVal[parentSym] = [obj, prop];
+                obj[prop] = createProxy(propVal, pathWatcherIds);
             }
 
             // register watch subscriber (if any)
@@ -340,6 +342,17 @@ function getPath(obj, prop) {
     }
 
     return currentPath;
+}
+
+function isExcludedInstance(val) {
+    return (
+        (val instanceof Date) ||
+        (val instanceof Set) ||
+        (val instanceof Map) ||
+        (val instanceof WeakRef) ||
+        (val instanceof WeakMap) ||
+        (val instanceof WeakSet)
+    )
 }
 
 function callWatchers(obj, prop, pathWatcherIds) {

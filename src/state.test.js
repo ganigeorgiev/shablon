@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import util from "node:util";
 import { test, describe, beforeEach, afterEach } from "node:test";
 import { watch, store } from "./state.js";
 
@@ -788,7 +789,7 @@ describe("getters", async () => {
     });
 });
 
-describe("excluded types", async () => {
+describe("excluded set types", async () => {
     let data;
     let fired;
     const sym = Symbol();
@@ -859,6 +860,39 @@ describe("excluded types", async () => {
         assert.strictEqual(fired.aWatch, 1, "fired.aWatch");
         assert.strictEqual(fired.symWatch, 1, "fired.symWatch");
         assert.strictEqual(fired.aFuncCall, 1, "fired.aFuncCall");
+    });
+});
+
+describe("check nested Proxy wrapping", () => {
+    const data = store({
+        number: 123,
+        string: "test",
+        bool: false,
+        plainObj: {},
+        plainArr: {},
+        date: new Date(),
+        set: new Set(),
+        map: new Map(),
+        weakRef: new WeakRef({}),
+        weakMap: new WeakMap(),
+        weakSet: new WeakSet(),
+    });
+
+    test("plain arrays and objects should be wrapped in a Proxy", () => {
+        assert(util.types.isProxy(data.plainObj))
+        assert(util.types.isProxy(data.plainArr))
+    });
+
+    test("primitive and excluded types should NOT be wrapped in a Proxy", () => {
+        assert(typeof data.number == "number")
+        assert(typeof data.string == "string")
+        assert(typeof data.bool == "boolean")
+        assert(data.date instanceof Date)
+        assert(data.set instanceof Set)
+        assert(data.map instanceof Map)
+        assert(data.weakRef instanceof WeakRef)
+        assert(data.weakMap instanceof WeakMap)
+        assert(data.weakSet instanceof WeakSet)
     });
 });
 

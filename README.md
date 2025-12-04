@@ -142,7 +142,7 @@ importing it from [npm](https://www.npmjs.com/package/shablon).
 
 The keys of an `obj` must be "stringifiable" because they are used internally to construct a path to the reactive value.
 
-The values can be any valid JS value, including nested arrays and objects (aka. it is recursively reactive).
+The values can be any valid JS primitive value, including nested plain arrays and objects (aka. it is recursively reactive).
 
 Getters are also supported and can be used as reactive computed properties.
 The value of a reactive getter is "cached", meaning that even if one of the getter dependency changes, as long as the resulting value is the same there will be no unnecessary watch events fired.
@@ -162,6 +162,10 @@ data.age++
 data.activity = "rest"
 ```
 
+> [!NOTE]
+> Object values like `Date`, `Set`, `Map`, `WeakRef`, `WeakSet` and `WeakMap` values are not wrapped in a nested `Proxy` and they will be resolved as they are to minimize access errors.
+> For other custom object types thay you may want to access without a `Proxy` you can use the special `__raw` key, e.g. `data.myCustomType.__raw.someKey`.
+
 </details>
 
 
@@ -170,6 +174,8 @@ data.activity = "rest"
 
 Watch registers a callback function that fires on initialization and
 every time any of its evaluated `store` reactive properties change.
+
+Note that for reactive getters, initially the watch `trackedFunc` will be invoked twice because we register a second internal watcher to cache the getter value.
 
 It returns a "watcher" object that could be used to `unwatch()` the registered listener.
 
@@ -214,8 +220,6 @@ data.a++ // trigger watch update
 data.b++ // trigger watch update
 data.c++ // doesn't trigger watch update
 ```
-
-Note that for reactive getters, initially the watch trackCallback will be invoked twice because we register a second internal watcher to cache the getter value.
 
 </details>
 
