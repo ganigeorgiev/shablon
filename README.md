@@ -162,8 +162,7 @@ data.age++
 data.activity = "rest"
 ```
 
-> [!NOTE]
-> Object values like `Date`, `Set`, `Map`, `WeakRef`, `WeakSet` and `WeakMap` values are not wrapped in a nested `Proxy` and they will be resolved as they are to minimize access errors.
+> Note that Object values like `Date`, `Set`, `Map`, `WeakRef`, `WeakSet` and `WeakMap` values are not wrapped in a nested `Proxy` and they will be resolved as they are to avoid access errors.
 > For other custom object types thay you may want to access without a `Proxy` you can use the special `__raw` key, e.g. `data.myCustomType.__raw.someKey`.
 
 </details>
