@@ -209,7 +209,7 @@ const data = store({
 watch(() => [
    data.a,
    data.b,
-], () => {
+], (_) => { // receive the return result of trackedFunc
     console.log(data.a)
     console.log(data.b)
     console.log(data.c)

@@ -87,10 +87,12 @@ export function watch(trackedFunc, optUntrackedFunc) {
 
         activeWatcher = watcher;
         activeWatcher[pathsResetedSym] = false;
-        watcher.last = trackedFunc();
+        const result = trackedFunc();
 
-        activeWatcher = null;
-        optUntrackedFunc?.();
+        if (optUntrackedFunc) {
+            activeWatcher = null;
+            optUntrackedFunc(result);
+        }
 
         // restore original ref (if any)
         activeWatcher = oldActiveWatcher;

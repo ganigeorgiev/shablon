@@ -97,7 +97,9 @@ function tag(tagName, attrs = {}, ...children) {
                 attr = attr.substring(5);
             }
 
-            if (
+            if (typeof val === "undefined") {
+                el.removeAttribute(attr);
+            } else if (
                 // JS property or regular HTML attribute
                 typeof val != "function" ||
                 // event
@@ -192,6 +194,8 @@ function setChildren(el, children) {
     }
 }
 
+// Note: Direct nested reactive functions or direct nested arrays are not supported,
+// aka. childrenFunc must return a single element or plain array of elements.
 function initChildrenFuncWatcher(el, childrenFunc) {
     let endPlaceholder = document.createComment("");
     el.appendChild(endPlaceholder);

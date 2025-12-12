@@ -46,6 +46,15 @@ describe("tags creation", () => {
         assert.strictEqual(tag.getAttribute("b"), "456");
     });
 
+    test("undefined should remove an attribute", () => {
+        const tag = t.div({ "id": undefined, "html-a": undefined, "html-b": null });
+
+        assert.strictEqual(tag.tagName, "DIV");
+        assert.strictEqual(tag.hasAttribute("id"), false);
+        assert.strictEqual(tag.hasAttribute("a"), false);
+        assert.strictEqual(tag.hasAttribute("b"), true);
+    });
+
     test("children", () => {
         const tag = t.div(
             null,
