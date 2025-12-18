@@ -220,7 +220,11 @@ function createProxy(obj, pathWatcherIds) {
             if (
                 propVal !== null && typeof propVal == "object" &&
                 !propVal[parentSym] &&
-                !isExcludedInstance(propVal)
+                (
+                    propVal.constructor?.name == "Object" ||
+                    propVal.constructor?.name == "Array" ||
+                    propVal.constructor?.name === undefined
+                )
             ) {
                 propVal[parentSym] = [obj, prop];
                 obj[prop] = createProxy(propVal, pathWatcherIds);
@@ -344,17 +348,6 @@ function getPath(obj, prop) {
     }
 
     return currentPath;
-}
-
-function isExcludedInstance(val) {
-    return (
-        (val instanceof Date) ||
-        (val instanceof Set) ||
-        (val instanceof Map) ||
-        (val instanceof WeakRef) ||
-        (val instanceof WeakMap) ||
-        (val instanceof WeakSet)
-    )
 }
 
 function callWatchers(obj, prop, pathWatcherIds) {
