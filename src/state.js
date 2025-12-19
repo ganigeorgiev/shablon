@@ -166,10 +166,8 @@ function removeWatcher(id) {
     }
 
     if (w?.[pathsSubsSym]) {
-        for (let subset of w[pathsSubsSym]) {
-            if (subset.has(id)) {
-                subset.delete(id);
-            }
+        for (let sub of w[pathsSubsSym]) {
+            sub.delete(id);
         }
         w[pathsSubsSym] = null;
     }
@@ -216,7 +214,7 @@ function createProxy(obj, pathWatcherIds) {
             ? Object.getOwnPropertyDescriptors(obj)
             : {};
 
-    let handler = {
+    return new Proxy(obj, {
         get(obj, prop, target) {
             if (prop === "__raw") {
                 return obj;
@@ -319,18 +317,14 @@ function createProxy(obj, pathWatcherIds) {
                 callWatchers(obj, prop, pathWatcherIds);
 
                 let currentPath = getPath(obj, prop);
-                if (pathWatcherIds.has(currentPath)) {
-                    pathWatcherIds.delete(currentPath);
-                }
+                pathWatcherIds.delete(currentPath);
             }
 
             delete obj[prop];
 
             return true;
         },
-    };
-
-    return new Proxy(obj, handler);
+    });
 }
 
 function getPath(obj, prop) {
