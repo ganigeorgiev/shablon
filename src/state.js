@@ -7,7 +7,6 @@ let cleanTimeoutId;
 
 let idSym = Symbol();
 let parentSym = Symbol();
-let pathsResetedSym = Symbol();
 let childrenSym = Symbol();
 let pathsSubsSym = Symbol();
 let unwatchedSym = Symbol();
@@ -85,8 +84,38 @@ export function watch(trackedFunc, optUntrackedFunc) {
             activeWatcher[childrenSym].push(watcher[idSym]);
         }
 
+        // On watcher function run, resets any previous tracking paths
+        // because after this new run some of the old dependencies
+        // may no longer be reachable/evaluatable.
+        //
+        // For example, in the below code:
+        //
+        // ```js
+        // const data = store({ a: 0, b: 0, c: 0 })
+        //
+        // watch(() => {
+        //     if (data.a > 0) {
+        //         data.b
+        //     } else {
+        //         data.c
+        //     }
+        // })
+        // ```
+        //
+        // initially ONLY "a" and "c" should be trackable because "b"
+        // is not reachable (aka. its getter is never invoked).
+        //
+        // If we increment `a++`, then in the new run  ONLY "a" and "b" should be trackable
+        // because this time "c" is not reachable (aka. its getter is never invoked)
+        // and its previous tracking should be removed for this watcher.
+        //
+        // Note: The below code works because it reuses the same "subs" reference as in pathWatcherIds
+        //       and this is intentional to avoid unnecessary iterations.
+        watcher[pathsSubsSym]?.forEach((subs) => {
+            subs.delete(watcher[idSym])
+        })
+
         activeWatcher = watcher;
-        activeWatcher[pathsResetedSym] = false;
         const result = trackedFunc();
 
         if (optUntrackedFunc) {
@@ -236,40 +265,6 @@ function createProxy(obj, pathWatcherIds) {
                 let activeWatcherId = activeWatcher[idSym];
 
                 activeWatcher[pathsSubsSym] = activeWatcher[pathsSubsSym] || new Set();
-
-                // If this is a rerun of the watcher function, resets any previous
-                // tracking paths because after this new run some of the old
-                // dependencies may no longer be reachable/evaluatable.
-                //
-                // For example, in the below code:
-                //
-                // ```js
-                // const data = store({ a: 0, b: 0, c: 0 })
-                //
-                // watch(() => {
-                //     if (data.a > 0) {
-                //         data.b
-                //     } else {
-                //         data.c
-                //     }
-                // })
-                // ```
-                //
-                // initially ONLY "a" and "c" should be trackable because "b"
-                // is not reachable (aka. its getter is never invoked).
-                //
-                // If we increment `a++`, then in the new run  ONLY "a" and "b" should be trackable
-                // because this time "c" is not reachable (aka. its getter is never invoked)
-                // and its previous tracking should be removed for this watcher.
-                //
-                // Note: The below code works because it reuses the same "subs" reference as in pathWatcherIds
-                //       and this is intentional to avoid unnecessary iterations.
-                if (!activeWatcher[pathsResetedSym]) {
-                    activeWatcher[pathsSubsSym].forEach((subs) => {
-                        subs.delete(activeWatcherId)
-                    })
-                    activeWatcher[pathsResetedSym] = true;
-                }
 
                 let subs = pathWatcherIds.get(currentPath);
                 if (!subs) {
