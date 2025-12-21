@@ -707,7 +707,44 @@ describe("store with arrays", () => {
     });
 });
 
-describe("getters", () => {
+describe("getters - internal cached prop", () => {
+    const data = store({
+        firstName: "a",
+        lastName: "b",
+        get fullName() {
+            return data.firstName + " " + data.lastName;
+        },
+    });
+
+    test("no internal prop initialization (aka. direct getter access)", () => {
+        assert.strictEqual(data["@@fullName"], undefined, "[before] data.@@fullName");
+        assert.strictEqual(data.fullName, "a b", "data.fullName")
+        assert.strictEqual(data["@@fullName"], undefined, "[after] data.@@fullName");
+    })
+
+    test("internal prop initialization inside watch", () => {
+        assert.strictEqual(data["@@fullName"], undefined, "[before] data.@@fullName");
+
+        let watchVal;
+        watch(() => {
+            // this should initialize and return the internal prop
+            watchVal = data.fullName
+        }).unwatch()
+
+        assert.strictEqual(watchVal, "a b", "data.fullName")
+
+        assert.strictEqual(data["@@fullName"], "a b", "[after] data.@@fullName");
+    })
+
+    test("internal prop should NOT be enumerable", () => {
+        assert.strictEqual(
+            JSON.stringify(data),
+            `{"firstName":"a","lastName":"b","fullName":"a b"}`,
+        );
+    })
+})
+
+describe("getters - watcher", () => {
     let data;
     let fired;
     const watchers = [];

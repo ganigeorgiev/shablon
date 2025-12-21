@@ -228,6 +228,22 @@ function createProxy(obj, pathWatcherIds) {
                 return obj;
             }
 
+            // getter?
+            let getterProp;
+            if (descriptors[prop]?.get) {
+                // if not invoked inside a watch function, call the original
+                // getter to ensure that an up-to-date value is computed
+                if (!activeWatcher) {
+                    return descriptors[prop]?.get?.call(obj);
+                }
+
+                getterProp = prop;
+
+                // replace with an internal property so that reactive statements can be cached
+                prop = "@@" + prop;
+                Object.defineProperty(obj, prop, { writable: true, enumerable: false });
+            }
+
             // evicted child?
             if (!obj[skipSym] && obj[parentSym]) {
                 let props = [];
@@ -275,22 +291,6 @@ function createProxy(obj, pathWatcherIds) {
                     // update the current obj with the one from the retraced path
                     obj = activeObj;
                 }
-            }
-
-            // getter?
-            let getterProp;
-            if (descriptors[prop]?.get) {
-                // if not invoked inside a watch function, call the original
-                // getter to ensure that an up-to-date value is computed
-                if (!activeWatcher) {
-                    return descriptors[prop]?.get?.call(obj);
-                }
-
-                getterProp = prop;
-
-                // replace with an internal "@@prop" property so that
-                // reactive statements can be cached
-                prop = "@@" + prop;
             }
 
             let propVal = obj[prop];
@@ -360,11 +360,14 @@ function createProxy(obj, pathWatcherIds) {
 
                     let getFunc = descriptors[getterProp].get.bind(obj);
 
-                    let getWatcher = watch(() => (receiver[prop] = getFunc()));
+                    let getWatcher = watch(getFunc, (result) => (receiver[prop] = result));
 
                     getWatcher[onRemoveSym] = () => {
                         descriptors[getterProp]?.watchers?.delete(watcherId);
                     };
+
+                    // update with the cached get value after the above watch initialization
+                    propVal = obj[prop]
                 }
             }
 
