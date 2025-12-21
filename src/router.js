@@ -49,7 +49,7 @@ export function router(routes, options = { fallbackPath: "#/", transition: true 
         if (!route) {
             if (options.fallbackPath != path) {
                 window.location.hash = options.fallbackPath;
-                return
+                return;
             }
 
             console.warn("missing route:", path);
@@ -120,7 +120,8 @@ function prepareRoutes(routes) {
                 parts[i].endsWith("}")
             ) {
                 // param
-                parts[i] = "(?<" + parts[i].substring(1, parts[i].length - 1) + ">[^\\/#?]+)";
+                parts[i] =
+                    "(?<" + parts[i].substring(1, parts[i].length - 1) + ">[^\\/#?]+)";
             } else {
                 // regular path segment
                 parts[i] = RegExp.escape(parts[i]);

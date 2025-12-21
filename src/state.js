@@ -11,6 +11,10 @@ let childrenSym = Symbol();
 let pathsSubsSym = Symbol();
 let unwatchedSym = Symbol();
 let onRemoveSym = Symbol();
+let skipSym = Symbol();
+let evictedSym = Symbol();
+
+let pathSeparator = "/";
 
 /**
  * Watch registers a callback function that fires on initialization and
@@ -67,7 +71,7 @@ let onRemoveSym = Symbol();
 export function watch(trackedFunc, optUntrackedFunc) {
     let watcher = {
         [idSym]: "_" + Math.random(),
-    }
+    };
 
     allWatchers.set(watcher[idSym], watcher);
 
@@ -76,7 +80,7 @@ export function watch(trackedFunc, optUntrackedFunc) {
 
         // nested watcher -> register previous watcher as parent
         if (activeWatcher) {
-            oldActiveWatcher = activeWatcher
+            oldActiveWatcher = activeWatcher;
             watcher[parentSym] = activeWatcher[idSym];
 
             // store immediate children references for quicker cleanup
@@ -112,8 +116,8 @@ export function watch(trackedFunc, optUntrackedFunc) {
         // Note: The below code works because it reuses the same "subs" reference as in pathWatcherIds
         //       and this is intentional to avoid unnecessary iterations.
         watcher[pathsSubsSym]?.forEach((subs) => {
-            subs.delete(watcher[idSym])
-        })
+            subs.delete(watcher[idSym]);
+        });
 
         activeWatcher = watcher;
         const result = trackedFunc();
@@ -215,9 +219,62 @@ function createProxy(obj, pathWatcherIds) {
             : {};
 
     return new Proxy(obj, {
-        get(obj, prop, target) {
-            if (prop === "__raw") {
+        get(obj, prop, receiver) {
+            if (typeof prop == "symbol") {
+                return obj[prop];
+            }
+
+            if (prop == "__raw") {
                 return obj;
+            }
+
+            // evicted child?
+            if (!obj[skipSym] && obj[parentSym]) {
+                let props = [];
+                let activeObj = obj;
+
+                let isEvicted = false;
+
+                // travel up to the root proxy
+                // (aka. x.a.b*.c -> x)
+                while (activeObj?.[parentSym]) {
+                    if (activeObj[evictedSym]) {
+                        isEvicted = true;
+                    }
+
+                    props.push(activeObj[parentSym][1]);
+                    activeObj = activeObj[parentSym][0];
+                }
+
+                // try to access the original path but this time from
+                // the root point of view to ensure that we are always accessing
+                // an up-to-date store child reference
+                // (we want: x.a.b(old).c -> x -> x.a.b(new).c)
+                //
+                // note: this technically could "leak" but for our case it should be fine
+                // because the evicted object will become again garbage collectable
+                // once the related watcher(s) are removed
+                if (isEvicted) {
+                    for (let i = props.length - 1; i >= 0; i--) {
+                        activeObj[skipSym] = true;
+                        let item = activeObj?.[props[i]];
+                        activeObj[skipSym] = false;
+
+                        if (i == 0) {
+                            activeObj = item?.__raw;
+                        } else {
+                            activeObj = item;
+                        }
+                    }
+
+                    // the original full nested path is no longer available (null/undefined)
+                    if (activeObj == undefined) {
+                        return activeObj;
+                    }
+
+                    // update the current obj with the one from the retraced path
+                    obj = activeObj;
+                }
             }
 
             // getter?
@@ -231,30 +288,30 @@ function createProxy(obj, pathWatcherIds) {
 
                 getterProp = prop;
 
-                // replace with an internal "@prop" property so that
+                // replace with an internal "@@prop" property so that
                 // reactive statements can be cached
-                prop = "@" + prop;
+                prop = "@@" + prop;
             }
 
-            const propVal = obj[prop]
+            let propVal = obj[prop];
 
-            // directly return symbols and functions (pop, push, etc.)
-            if (typeof prop == "symbol" || typeof propVal == "function") {
+            // directly return for functions (pop, push, etc.)
+            if (typeof propVal == "function") {
                 return propVal;
             }
 
-            // wrap child object or array as sub store
+            // wrap child plain object or array as sub store
             if (
-                propVal !== null && typeof propVal == "object" &&
+                propVal != null &&
+                typeof propVal == "object" &&
                 !propVal[parentSym] &&
-                (
-                    propVal.constructor?.name == "Object" ||
+                (propVal.constructor?.name == "Object" ||
                     propVal.constructor?.name == "Array" ||
-                    propVal.constructor?.name === undefined
-                )
+                    propVal.constructor?.name == undefined) // e.g. Object.create(null)
             ) {
-                propVal[parentSym] = [obj, prop];
-                obj[prop] = createProxy(propVal, pathWatcherIds);
+                propVal[parentSym] = [receiver, prop];
+                propVal = createProxy(propVal, pathWatcherIds);
+                obj[prop] = propVal;
             }
 
             // register watch subscriber (if any)
@@ -262,18 +319,36 @@ function createProxy(obj, pathWatcherIds) {
                 let currentPath = getPath(obj, prop);
                 let activeWatcherId = activeWatcher[idSym];
 
+                let propPaths = [currentPath];
+
+                // always construct all parent paths ("x.a.b.c" => ["a", "a.b", "a.b.c"])
+                // because a store child object can be passed as argument to a function
+                // and in that case the parents proxy get trap will not be invoked,
+                // and their path will not be registered
+                if (obj[parentSym]) {
+                    let parts = currentPath.split(pathSeparator);
+                    while (parts.pop() && parts.length) {
+                        propPaths.push(parts.join(pathSeparator));
+                    }
+                }
+
+                // initialize a watcher paths tracking set (if not already)
                 activeWatcher[pathsSubsSym] = activeWatcher[pathsSubsSym] || new Set();
 
-                let subs = pathWatcherIds.get(currentPath);
-                if (!subs) {
-                    subs = new Set();
-                    pathWatcherIds.set(currentPath, subs);
+                // register the paths to watch
+                for (let path of propPaths) {
+                    let subs = pathWatcherIds.get(path);
+                    if (!subs) {
+                        subs = new Set();
+                        pathWatcherIds.set(path, subs);
+                    }
+
+                    subs.add(activeWatcherId);
+
+                    activeWatcher[pathsSubsSym].add(subs);
                 }
-                subs.add(activeWatcherId);
 
-                activeWatcher[pathsSubsSym].add(subs);
-
-                // register a child watcher to update the custom getter prop replacement
+                // register an extra child watcher to update the custom getter prop replacement
                 // (should be removed automatically with the removal of the parent watcher)
                 if (
                     getterProp &&
@@ -285,7 +360,7 @@ function createProxy(obj, pathWatcherIds) {
 
                     let getFunc = descriptors[getterProp].get.bind(obj);
 
-                    let getWatcher = watch(() => (target[prop] = getFunc()));
+                    let getWatcher = watch(() => (receiver[prop] = getFunc()));
 
                     getWatcher[onRemoveSym] = () => {
                         descriptors[getterProp]?.watchers?.delete(watcherId);
@@ -293,7 +368,7 @@ function createProxy(obj, pathWatcherIds) {
                 }
             }
 
-            return obj[prop];
+            return propVal;
         },
         set(obj, prop, value) {
             if (typeof prop == "symbol") {
@@ -302,6 +377,17 @@ function createProxy(obj, pathWatcherIds) {
             }
 
             let oldValue = obj[prop];
+
+            // mark as "evicted" in case a proxy child object/array is being replaced
+            if (oldValue?.[parentSym]) {
+                oldValue[evictedSym] = true;
+            }
+
+            // update the stored parent reference in case of index change (e.g. unshift)
+            if (value?.[parentSym] && Array.isArray(obj) && !isNaN(prop)) {
+                value[parentSym][1] = prop;
+            }
+
             obj[prop] = value;
 
             // trigger only on value change
@@ -317,12 +403,20 @@ function createProxy(obj, pathWatcherIds) {
                 callWatchers(obj, prop, pathWatcherIds);
 
                 let currentPath = getPath(obj, prop);
-                pathWatcherIds.delete(currentPath);
+
+                for (const item of pathWatcherIds) {
+                    if (
+                        // exact match
+                        item[0] == currentPath ||
+                        // child path
+                        item[0].startsWith(currentPath + pathSeparator)
+                    ) {
+                        pathWatcherIds.delete(item[0]);
+                    }
+                }
             }
 
-            delete obj[prop];
-
-            return true;
+            return delete obj[prop];
         },
     });
 }
@@ -332,7 +426,7 @@ function getPath(obj, prop) {
 
     let parentData = obj?.[parentSym];
     while (parentData) {
-        currentPath = parentData[1] + "." + currentPath;
+        currentPath = parentData[1] + pathSeparator + currentPath;
         parentData = parentData[0][parentSym];
     }
 

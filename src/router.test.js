@@ -80,7 +80,6 @@ describe("default router", async () => {
     test("missing route", async () => {
         window.location.hash = "#/missing";
 
-
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         // wait again to ensure that it is cheched after the redirect event listener change

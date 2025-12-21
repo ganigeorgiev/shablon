@@ -3,7 +3,7 @@ import util from "node:util";
 import { test, describe, beforeEach, afterEach } from "node:test";
 import { watch, store } from "./state.js";
 
-describe("nested watchers", async () => {
+describe("nested watchers", () => {
     let data;
     let fired;
     let w1, w2, w3;
@@ -134,7 +134,7 @@ describe("nested watchers", async () => {
     });
 });
 
-describe("store with simple values", async () => {
+describe("store with simple values", () => {
     let data;
     let fired;
     const watchers = [];
@@ -274,7 +274,7 @@ describe("store with simple values", async () => {
     });
 });
 
-describe("store with objects", async () => {
+describe("store with objects", () => {
     const obj = { b: { c1: 1, c2: 2 } };
     let data;
     let fired;
@@ -388,7 +388,7 @@ describe("store with objects", async () => {
     });
 });
 
-describe("store with arrays", async () => {
+describe("store with arrays", () => {
     let data;
     let fired;
     const watchers = [];
@@ -612,7 +612,7 @@ describe("store with arrays", async () => {
         assert.strictEqual(fired.nowatch, 0, "fired.nowatch");
     });
 
-    test("unshift", async () => {
+    test("shift", async () => {
         data.simple.shift();
 
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -707,7 +707,7 @@ describe("store with arrays", async () => {
     });
 });
 
-describe("getters", async () => {
+describe("getters", () => {
     let data;
     let fired;
     const watchers = [];
@@ -789,7 +789,7 @@ describe("getters", async () => {
     });
 });
 
-describe("excluded set types", async () => {
+describe("excluded set types", () => {
     let data;
     let fired;
     const sym = Symbol();
@@ -864,11 +864,14 @@ describe("excluded set types", async () => {
 });
 
 describe("check nested Proxy wrapping", () => {
+    class Custom {}
+
     const data = store({
         number: 123,
         string: "test",
         bool: false,
         plainObj: {},
+        plainObj2: Object.create(null),
         plainArr: {},
         date: new Date(),
         set: new Set(),
@@ -876,27 +879,30 @@ describe("check nested Proxy wrapping", () => {
         weakRef: new WeakRef({}),
         weakMap: new WeakMap(),
         weakSet: new WeakSet(),
+        custom: new Custom(),
     });
 
     test("plain arrays and objects should be wrapped in a Proxy", () => {
-        assert(util.types.isProxy(data.plainObj))
-        assert(util.types.isProxy(data.plainArr))
+        assert(util.types.isProxy(data.plainObj));
+        assert(util.types.isProxy(data.plainObj2));
+        assert(util.types.isProxy(data.plainArr));
     });
 
     test("primitive and excluded types should NOT be wrapped in a Proxy", () => {
-        assert(typeof data.number == "number")
-        assert(typeof data.string == "string")
-        assert(typeof data.bool == "boolean")
-        assert(data.date instanceof Date)
-        assert(data.set instanceof Set)
-        assert(data.map instanceof Map)
-        assert(data.weakRef instanceof WeakRef)
-        assert(data.weakMap instanceof WeakMap)
-        assert(data.weakSet instanceof WeakSet)
+        assert(typeof data.number == "number");
+        assert(typeof data.string == "string");
+        assert(typeof data.bool == "boolean");
+        assert(data.date instanceof Date);
+        assert(data.set instanceof Set);
+        assert(data.map instanceof Map);
+        assert(data.weakRef instanceof WeakRef);
+        assert(data.weakMap instanceof WeakMap);
+        assert(data.weakSet instanceof WeakSet);
+        assert(data.custom instanceof Custom);
     });
 });
 
-describe("dependencies tracking on watch func reruns", async () => {
+describe("dependencies tracking on watch func reruns", () => {
     let fired = 0;
 
     const data = store({
@@ -907,19 +913,19 @@ describe("dependencies tracking on watch func reruns", async () => {
 
     watch(() => {
         if (data.a > 0) {
-            data.b
+            data.b;
         } else {
-            data.c
+            data.c;
         }
-        fired++
-    })
+        fired++;
+    });
 
     beforeEach(() => {
         fired = 0;
-    })
+    });
 
     test("updating c should fire", async () => {
-        data.c++
+        data.c++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -927,7 +933,7 @@ describe("dependencies tracking on watch func reruns", async () => {
     });
 
     test("updating b should NOT fire", async () => {
-        data.b++
+        data.b++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -935,7 +941,7 @@ describe("dependencies tracking on watch func reruns", async () => {
     });
 
     test("updating a should fire (and enable b tracking)", async () => {
-        data.a++
+        data.a++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -943,7 +949,7 @@ describe("dependencies tracking on watch func reruns", async () => {
     });
 
     test("after a>0 updating b should fire", async () => {
-        data.b++
+        data.b++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -951,7 +957,7 @@ describe("dependencies tracking on watch func reruns", async () => {
     });
 
     test("after a>0 updating c should NOT fire", async () => {
-        data.c++
+        data.c++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -959,7 +965,7 @@ describe("dependencies tracking on watch func reruns", async () => {
     });
 });
 
-describe("watch with optUntrackedFunc", async () => {
+describe("watch with optUntrackedFunc", () => {
     let fired = 0;
 
     const data = store({
@@ -968,19 +974,19 @@ describe("watch with optUntrackedFunc", async () => {
         c: 0,
     });
 
-    watch(() => [
-        data.a,
-        data.b,
-    ], () => {
-        fired++
-    })
+    watch(
+        () => [data.a, data.b],
+        () => {
+            fired++;
+        },
+    );
 
     beforeEach(() => {
         fired = 0;
-    })
+    });
 
     test("updating a should fire", async () => {
-        data.a++
+        data.a++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -988,7 +994,7 @@ describe("watch with optUntrackedFunc", async () => {
     });
 
     test("updating b should fire", async () => {
-        data.b++
+        data.b++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -996,10 +1002,70 @@ describe("watch with optUntrackedFunc", async () => {
     });
 
     test("updating c should NOT fire", async () => {
-        data.c++
+        data.c++;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(fired, 0);
+    });
+});
+
+describe("watch with evicted child", () => {
+    let fired = {};
+
+    const data = store({
+        a: {
+            b: {
+                c: 0,
+            },
+        },
+    });
+
+    watch(() => (fired.full = data.a?.b?.c));
+
+    function evictedWatcher(subStore) {
+        watch(() => (fired.evicted = subStore?.c));
+    }
+    evictedWatcher(data.a.b);
+
+    beforeEach(() => {
+        fired.full = -Infinity;
+        fired.evicted = -Infinity;
+    });
+
+    test("update old", async () => {
+        data.a.b.c++;
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired.full, 1, "fired.full");
+        assert.strictEqual(fired.evicted, 1, "fired.evicted");
+    });
+
+    test("evict", async () => {
+        data.a = { b: { c: 3 } };
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired.full, 3, "fired.full");
+        assert.strictEqual(fired.evicted, 3, "fired.evicted");
+    });
+
+    test("update new", async () => {
+        data.a.b.c++;
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired.full, 4, "fired.full");
+        assert.strictEqual(fired.evicted, 4, "fired.evicted");
+    });
+
+    test("delete evicted prop", async () => {
+        delete data.a.b;
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired.full, undefined, "fired.full");
+        assert.strictEqual(fired.evicted, undefined, "fired.evicted");
     });
 });

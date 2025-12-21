@@ -402,7 +402,11 @@ function toArray(val) {
 
 function normalizeNode(child) {
     // wrap as TextNode so that it can be "tracked" and used with appendChild or other similar methods
-    if (typeof child == "string" || typeof child == "number" || typeof child == "boolean") {
+    if (
+        typeof child == "string" ||
+        typeof child == "number" ||
+        typeof child == "boolean"
+    ) {
         let childNode = document.createTextNode(child);
         childNode.rid = child;
         return childNode;
@@ -410,7 +414,7 @@ function normalizeNode(child) {
 
     // in case child is DOM Proxy element/array loaded from a store object
     if (typeof child?.__raw != "undefined") {
-        return child.__raw
+        return child.__raw;
     }
 
     return child;

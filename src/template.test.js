@@ -47,7 +47,7 @@ describe("tags creation", () => {
     });
 
     test("undefined should remove an attribute", () => {
-        const tag = t.div({ "id": undefined, "html-a": undefined, "html-b": null });
+        const tag = t.div({ id: undefined, "html-a": undefined, "html-b": null });
 
         assert.strictEqual(tag.tagName, "DIV");
         assert.strictEqual(tag.hasAttribute("id"), false);
@@ -363,8 +363,8 @@ describe("reactive children", () => {
     test("update children list while data.count > 0", async () => {
         data.list.pop();
         data.list.push({ meta: 456 }); // no rid -> should rerender on the next update
-        data.list[1].meta = 123;
-        data.list[2].name = "new_c"; // should rerender
+        data.list[1].meta = 123; // no rid change -> no rerender
+        data.list[2].name = "new_c"; // should rerender (the unmount will use the same name because it is debounced)
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 

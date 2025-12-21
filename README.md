@@ -6,7 +6,7 @@ Shablon - No-build JavaScript frontend framework
 >
 > **Don't use it yet - it hasn't been actually tested in real applications and it may change without notice!**
 
-**Shablon** _("template" in Bulgarian)_ is a ~5KB JS framework that comes with deeply reactive state management, plain JS extendable templates and hash-based router.
+**Shablon** _("template" in Bulgarian)_ is a ~6KB JS framework that comes with deeply reactive state management, plain JS extendable templates and hash-based router.
 
 Shablon has very small learning curve (**4 main exported functions**) and it is suitable for building Single-page applications (SPA):
 
@@ -162,8 +162,8 @@ data.age++
 data.activity = "rest"
 ```
 
-> Note that Object values like `Date`, `Set`, `Map`, `WeakRef`, `WeakSet` and `WeakMap` are not wrapped in a nested `Proxy` and they will be resolved as they are to avoid access errors.
-> For other custom object types thay you may want to access without a `Proxy` you can use the special `__raw` key, e.g. `data.myCustomType.__raw.someKey`.
+> Note that only plain objects and arrays are wrapped in a nested `Proxy`! `Date`, `Set`, `Map`, `WeakRef`, `WeakSet`, `WeakMap` or any custom object will be resolved as they are to avoid access errors.
+> You can access the original object without the Proxy trap using the special `__raw` key, e.g. `data.someObj.__raw.someKey`.
 
 </details>
 
