@@ -117,10 +117,12 @@ function tag(tagName, attrs = {}, ...children) {
                         return;
                     }
 
+                    const result = val(el, attr)
+
                     if (useSetAttr) {
-                        el.setAttribute(attr, val(el));
+                        el.setAttribute(attr, result);
                     } else {
-                        el[attr] = val(el);
+                        el[attr] = result;
                     }
                 });
             }
