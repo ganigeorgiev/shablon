@@ -174,8 +174,6 @@ data.activity = "rest"
 Watch registers a callback function that fires on initialization and
 every time any of its evaluated `store` reactive properties change.
 
-Note that for reactive getters, initially the watch `trackedFunc` will be invoked twice because we register a second internal watcher to cache the getter value.
-
 It returns a "watcher" object that could be used to `unwatch()` the registered listener.
 
 _Optionally also accepts a second callback function that is excluded from the evaluated

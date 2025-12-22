@@ -117,7 +117,7 @@ function tag(tagName, attrs = {}, ...children) {
                         return;
                     }
 
-                    const result = val(el, attr)
+                    const result = val(el, attr);
 
                     if (useSetAttr) {
                         el.setAttribute(attr, result);

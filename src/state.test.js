@@ -718,9 +718,9 @@ describe("getters - internal cached prop", () => {
 
     test("no internal prop initialization (aka. direct getter access)", () => {
         assert.strictEqual(data["@@fullName"], undefined, "[before] data.@@fullName");
-        assert.strictEqual(data.fullName, "a b", "data.fullName")
+        assert.strictEqual(data.fullName, "a b", "data.fullName");
         assert.strictEqual(data["@@fullName"], undefined, "[after] data.@@fullName");
-    })
+    });
 
     test("internal prop initialization inside watch", () => {
         assert.strictEqual(data["@@fullName"], undefined, "[before] data.@@fullName");
@@ -728,21 +728,21 @@ describe("getters - internal cached prop", () => {
         let watchVal;
         watch(() => {
             // this should initialize and return the internal prop
-            watchVal = data.fullName
-        }).unwatch()
+            watchVal = data.fullName;
+        }).unwatch();
 
-        assert.strictEqual(watchVal, "a b", "data.fullName")
+        assert.strictEqual(watchVal, "a b", "data.fullName");
 
         assert.strictEqual(data["@@fullName"], "a b", "[after] data.@@fullName");
-    })
+    });
 
     test("internal prop should NOT be enumerable", () => {
         assert.strictEqual(
             JSON.stringify(data),
             `{"firstName":"a","lastName":"b","fullName":"a b"}`,
         );
-    })
-})
+    });
+});
 
 describe("getters - watcher", () => {
     let data;
@@ -755,7 +755,7 @@ describe("getters - watcher", () => {
             lastName: "b",
             get fullName() {
                 fired.getterCall++;
-                return data.firstName + " " + data.lastName;
+                return (data.firstName + " " + data.lastName).trim();
             },
         });
 
@@ -797,7 +797,7 @@ describe("getters - watcher", () => {
 
         assert.strictEqual(fired.firstName, 1, "fired.firstName");
         assert.strictEqual(fired.lastName, 1, "fired.lastName");
-        assert.strictEqual(fired.getterWatch, 2, "fired.getterWatch"); // called twice because of the extra get watcher
+        assert.strictEqual(fired.getterWatch, 1, "fired.getterWatch");
         assert.strictEqual(fired.getterCall, 1, "fired.getterCall");
     });
 
@@ -809,7 +809,19 @@ describe("getters - watcher", () => {
         assert.strictEqual(data.fullName, "new b", "data.fullName");
         assert.strictEqual(fired.firstName, 2, "fired.firstName");
         assert.strictEqual(fired.lastName, 1, "fired.lastName");
-        assert.strictEqual(fired.getterWatch, 3, "fired.getterWatch");
+        assert.strictEqual(fired.getterWatch, 2, "fired.getterWatch");
+        assert.strictEqual(fired.getterCall, 3, "fired.getterCall");
+    });
+
+    test("dependency change without affecting the getter value (aka. cached watch value)", async () => {
+        data.lastName += "  ";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(data.fullName, "a b", "data.fullName");
+        assert.strictEqual(fired.firstName, 1, "fired.firstName");
+        assert.strictEqual(fired.lastName, 2, "fired.lastName");
+        assert.strictEqual(fired.getterWatch, 1, "fired.getterWatch");
         assert.strictEqual(fired.getterCall, 3, "fired.getterCall");
     });
 
@@ -821,7 +833,7 @@ describe("getters - watcher", () => {
         assert.strictEqual(val, "a b", "data.fullName");
         assert.strictEqual(fired.firstName, 1, "fired.firstName");
         assert.strictEqual(fired.lastName, 1, "fired.lastName");
-        assert.strictEqual(fired.getterWatch, 2, "fired.getterWatch");
+        assert.strictEqual(fired.getterWatch, 1, "fired.getterWatch");
         assert.strictEqual(fired.getterCall, 2, "fired.getterCall");
     });
 });

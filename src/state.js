@@ -234,14 +234,13 @@ function createProxy(obj, pathWatcherIds) {
                 // if not invoked inside a watch function, call the original
                 // getter to ensure that an up-to-date value is computed
                 if (!activeWatcher) {
-                    return descriptors[prop]?.get?.call(obj);
+                    return descriptors[prop].get.call(obj);
                 }
 
                 getterProp = prop;
 
                 // replace with an internal property so that reactive statements can be cached
                 prop = "@@" + prop;
-                Object.defineProperty(obj, prop, { writable: true, enumerable: false });
             }
 
             // detached child?
@@ -364,14 +363,24 @@ function createProxy(obj, pathWatcherIds) {
 
                     let getFunc = descriptors[getterProp].get.bind(obj);
 
-                    let getWatcher = watch(getFunc, (result) => (receiver[prop] = result));
+                    let getWatcher = watch(getFunc, (result) => {
+                        if (!obj.hasOwnProperty(prop)) {
+                            Object.defineProperty(obj, prop, {
+                                writable: true,
+                                enumerable: false,
+                                value: result,
+                            });
+                        } else {
+                            receiver[prop] = result;
+                        }
+                    });
 
                     getWatcher[onRemoveSym] = () => {
                         descriptors[getterProp]?.watchers?.delete(watcherId);
                     };
 
                     // update with the cached get value after the above watch initialization
-                    propVal = obj[prop]
+                    propVal = obj[prop];
                 }
             }
 
