@@ -1047,7 +1047,7 @@ describe("watch with optUntrackedFunc", () => {
     });
 });
 
-describe("watch with evicted child", () => {
+describe("watch with detached child", () => {
     let fired = {};
 
     const data = store({
@@ -1060,14 +1060,14 @@ describe("watch with evicted child", () => {
 
     watch(() => (fired.full = data.a?.b?.c));
 
-    function evictedWatcher(subStore) {
-        watch(() => (fired.evicted = subStore?.c));
+    function detachedWatcher(subStore) {
+        watch(() => (fired.detached = subStore?.c));
     }
-    evictedWatcher(data.a.b);
+    detachedWatcher(data.a.b);
 
     beforeEach(() => {
         fired.full = -Infinity;
-        fired.evicted = -Infinity;
+        fired.detached = -Infinity;
     });
 
     test("update old", async () => {
@@ -1076,16 +1076,18 @@ describe("watch with evicted child", () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(fired.full, 1, "fired.full");
-        assert.strictEqual(fired.evicted, 1, "fired.evicted");
+        assert.strictEqual(fired.detached, 1, "fired.detached");
     });
 
-    test("evict", async () => {
+    test("replace", async () => {
         data.a = { b: { c: 3 } };
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(fired.full, 3, "fired.full");
-        assert.strictEqual(fired.evicted, 3, "fired.evicted");
+
+        // note: see the "NB!" comment in the state.js why this is not 3
+        assert.strictEqual(fired.detached, -Infinity, "fired.detached");
     });
 
     test("update new", async () => {
@@ -1094,15 +1096,15 @@ describe("watch with evicted child", () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(fired.full, 4, "fired.full");
-        assert.strictEqual(fired.evicted, 4, "fired.evicted");
+        assert.strictEqual(fired.detached, 4, "fired.detached");
     });
 
-    test("delete evicted prop", async () => {
+    test("delete detached prop", async () => {
         delete data.a.b;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(fired.full, undefined, "fired.full");
-        assert.strictEqual(fired.evicted, undefined, "fired.evicted");
+        assert.strictEqual(fired.detached, undefined, "fired.detached");
     });
 });

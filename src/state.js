@@ -12,7 +12,7 @@ let pathsSubsSym = Symbol();
 let unwatchedSym = Symbol();
 let onRemoveSym = Symbol();
 let skipSym = Symbol();
-let evictedSym = Symbol();
+let detachedSym = Symbol();
 
 let pathSeparator = "/";
 
@@ -244,18 +244,17 @@ function createProxy(obj, pathWatcherIds) {
                 Object.defineProperty(obj, prop, { writable: true, enumerable: false });
             }
 
-            // evicted child?
+            // detached child?
+            let isDetached;
             if (!obj[skipSym] && obj[parentSym]) {
                 let props = [];
                 let activeObj = obj;
 
-                let isEvicted = false;
-
                 // travel up to the root proxy
                 // (aka. x.a.b*.c -> x)
                 while (activeObj?.[parentSym]) {
-                    if (activeObj[evictedSym]) {
-                        isEvicted = true;
+                    if (activeObj[detachedSym]) {
+                        isDetached = true;
                     }
 
                     props.push(activeObj[parentSym][1]);
@@ -268,9 +267,9 @@ function createProxy(obj, pathWatcherIds) {
                 // (we want: x.a.b(old).c -> x -> x.a.b(new).c)
                 //
                 // note: this technically could "leak" but for our case it should be fine
-                // because the evicted object will become again garbage collectable
+                // because the detached object will become again garbage collectable
                 // once the related watcher(s) are removed
-                if (isEvicted) {
+                if (isDetached) {
                     for (let i = props.length - 1; i >= 0; i--) {
                         activeObj[skipSym] = true;
                         let item = activeObj?.[props[i]];
@@ -321,16 +320,21 @@ function createProxy(obj, pathWatcherIds) {
 
                 let propPaths = [currentPath];
 
-                // always construct all parent paths ("x.a.b.c" => ["a", "a.b", "a.b.c"])
-                // because a store child object can be passed as argument to a function
-                // and in that case the parents proxy get trap will not be invoked,
-                // and their path will not be registered
-                if (obj[parentSym]) {
-                    let parts = currentPath.split(pathSeparator);
-                    while (parts.pop() && parts.length) {
-                        propPaths.push(parts.join(pathSeparator));
-                    }
-                }
+                // ---
+                // NB! Disable for now because of the nonblocking and delayed
+                // nature of the current MutationObserver implementation for the `onunmount` hook
+                // leading to unexpected and delayed watch calls in methods like `Array.map`.
+                // ---
+                // if (isDetached) {
+                //     // always construct all parent paths ("x.a.b.c" => ["a", "a.b", "a.b.c"])
+                //     // because a store child object can be passed as argument to a function
+                //     // and in that case the parents proxy get trap will not be invoked,
+                //     // and their path will not be registered
+                //     let parts = currentPath.split(pathSeparator);
+                //     while (parts.pop() && parts.length) {
+                //         propPaths.push(parts.join(pathSeparator));
+                //     }
+                // }
 
                 // initialize a watcher paths tracking set (if not already)
                 activeWatcher[pathsSubsSym] = activeWatcher[pathsSubsSym] || new Set();
@@ -381,9 +385,9 @@ function createProxy(obj, pathWatcherIds) {
 
             let oldValue = obj[prop];
 
-            // mark as "evicted" in case a proxy child object/array is being replaced
+            // mark as "detached" in case a proxy child object/array is being replaced
             if (oldValue?.[parentSym]) {
-                oldValue[evictedSym] = true;
+                oldValue[detachedSym] = true;
             }
 
             // update the stored parent reference in case of index change (e.g. unshift)
