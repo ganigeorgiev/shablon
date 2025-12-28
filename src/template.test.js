@@ -50,9 +50,45 @@ describe("tags creation", () => {
         const tag = t.div({ id: undefined, "html-a": undefined, "html-b": null });
 
         assert.strictEqual(tag.tagName, "DIV");
-        assert.strictEqual(tag.hasAttribute("id"), false);
-        assert.strictEqual(tag.hasAttribute("a"), false);
-        assert.strictEqual(tag.hasAttribute("b"), true);
+        assert.strictEqual(tag.hasAttribute("id"), false, "has-id");
+        assert.strictEqual(tag.hasAttribute("a"), false, "has-a");
+        assert.strictEqual(tag.hasAttribute("b"), true, "has-b");
+    });
+
+    test("reactive attribute function that returns undefine should remove it", async () => {
+        const data = store({
+            value: "123",
+            nullable: "456",
+        })
+
+        const tag = t.div({
+            id: () => data.value,
+            "html-a": () => data.value,
+            "html-b": () => data.nullable,
+            someCustomProp: () => data.value,
+        });
+
+        // trigger the reactive prop functions
+        document.body.appendChild(tag);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(tag.tagName, "DIV");
+        assert.strictEqual(tag.getAttribute("id"), "123", "[before] id");
+        assert.strictEqual(tag.getAttribute("a"), "123", "[before] a");
+        assert.strictEqual(tag.getAttribute("b"), "456", "[before] b");
+        assert.strictEqual(tag.someCustomProp, "123", "[before] someCustomProp");
+
+        data.value = undefined
+        data.nullable = null
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(tag.hasAttribute("id"), false, "[after] has-id");
+        assert.strictEqual(tag.hasAttribute("a"), false, "[after] has-a");
+        assert.strictEqual(tag.hasAttribute("b"), true, "[after] has-b");
+        assert.strictEqual(tag.getAttribute("b"), "null", "[after] b");
+        assert.strictEqual(tag.someCustomProp, undefined, "[after] someCustomProp");
     });
 
     test("children", () => {
