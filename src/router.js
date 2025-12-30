@@ -32,10 +32,14 @@
  * })
  * ```
  *
+ * `router` returns an optional destroy function that could be used to
+ * remove the already registered listeners, allowing you to initialize a new router.
+ *
  * @param {Object.<string, routeHandler>} routes
  * @param {Object} [options]
  * @param {string} [options.fallbackPath]
  * @param {boolean} [options.transition]
+ * @param {function} Destroy function.
  */
 export function router(routes, options = { fallbackPath: "#/", transition: true }) {
     let defs = prepareRoutes(routes);
@@ -75,6 +79,10 @@ export function router(routes, options = { fallbackPath: "#/", transition: true 
     window.addEventListener("hashchange", onHashChange);
 
     onHashChange();
+
+    return () => {
+        window.removeEventListener("hashchange", onHashChange);
+    }
 }
 
 function findActiveRoute(defs, path) {

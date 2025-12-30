@@ -8,7 +8,7 @@ globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 globalThis.MutationObserver = dom.window.MutationObserver;
 
-describe("default router", async () => {
+describe("router", () => {
     let match = {};
     let destroyed = {};
 
@@ -16,7 +16,7 @@ describe("default router", async () => {
         match = {};
     });
 
-    router({
+    const routerDestroy = router({
         "#/": (route) => {
             match = route;
         },
@@ -89,5 +89,15 @@ describe("default router", async () => {
         assert.deepStrictEqual(match.query, {}, "query");
         assert.deepStrictEqual(match.params, {}, "params");
         assert.strictEqual(destroyed.pattern, "#/users/{id}/abc/{action}", "destroyed");
+    });
+
+    test("after routerDestroy no router handlers should fire", async () => {
+        routerDestroy();
+
+        window.location.hash = "#/";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.deepStrictEqual(match, {}, "no handler");
     });
 });

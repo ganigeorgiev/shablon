@@ -284,6 +284,8 @@ router({
 })
 ```
 
+`router` returns an optional destroy function that could be used to remove the already registered listeners, allowing you to initialize a new router.
+
 </details>
 
 
