@@ -229,18 +229,48 @@ function createProxy(obj, pathWatcherIds) {
             }
 
             // getter?
-            let getterProp;
-            if (descriptors[prop]?.get) {
+            if (
+                descriptors[prop]?.get &&
+                !obj[parentSym] // for now disallow nested child getters because they leak
+            ) {
                 // if not invoked inside a watch function, call the original
                 // getter to ensure that an up-to-date value is computed
                 if (!activeWatcher) {
                     return descriptors[prop].get.call(obj);
                 }
 
-                getterProp = prop;
+                let originalProp = prop;
 
                 // replace with an internal property so that reactive statements can be cached
                 prop = "@@" + prop;
+
+                // register an extra watcher to update the cached getter prop
+                if (!descriptors[originalProp]._watcher) {
+                    // temporary clear previous active watcher to ensure
+                    // that the getter watcher will be registered as a top-level one
+                    let oldActiveWatcher = activeWatcher
+                    activeWatcher = null;
+
+                    let getWatcher = watch(descriptors[originalProp].get.bind(obj), (result) => {
+                        if (!obj.hasOwnProperty(prop)) {
+                            Object.defineProperty(obj, prop, {
+                                writable: true,
+                                enumerable: false,
+                                value: result,
+                            });
+                        } else {
+                            receiver[prop] = result;
+                        }
+                    });
+
+                    getWatcher[onRemoveSym] = () => {
+                        descriptors[originalProp]._watcher = null
+                    };
+
+                    descriptors[originalProp]._watcher = getWatcher
+
+                    activeWatcher = oldActiveWatcher
+                }
             }
 
             // detached child?
@@ -350,38 +380,6 @@ function createProxy(obj, pathWatcherIds) {
 
                     activeWatcher[pathsSubsSym].add(subs);
                 }
-
-                // register an extra child watcher to update the custom getter prop replacement
-                // (should be removed automatically with the removal of the parent watcher)
-                if (
-                    getterProp &&
-                    !descriptors[getterProp]._watchers?.has(activeWatcherId)
-                ) {
-                    descriptors[getterProp]._watchers =
-                        descriptors[getterProp]._watchers || new Set();
-                    descriptors[getterProp]._watchers.add(activeWatcherId);
-
-                    let getFunc = descriptors[getterProp].get.bind(obj);
-
-                    let getWatcher = watch(getFunc, (result) => {
-                        if (!obj.hasOwnProperty(prop)) {
-                            Object.defineProperty(obj, prop, {
-                                writable: true,
-                                enumerable: false,
-                                value: result,
-                            });
-                        } else {
-                            receiver[prop] = result;
-                        }
-                    });
-
-                    getWatcher[onRemoveSym] = () => {
-                        descriptors[getterProp]?.watchers?.delete(watcherId);
-                    };
-
-                    // update with the cached get value after the above watch initialization
-                    propVal = obj[prop];
-                }
             }
 
             return propVal;
@@ -455,10 +453,22 @@ function callWatchers(obj, prop, pathWatcherIds) {
     let watcherIds = pathWatcherIds.get(currentPath);
 
     if (!watcherIds) {
-        return true;
+        return;
     }
 
     for (let id of watcherIds) {
+        // delete previous entry so that it can be appended to the queue
+        //
+        // note: the call sequence matter because we want to ensure that the
+        // internal getter watcher will be called before the user defined one,
+        // aka. you can have a watcher like this:
+        // ```js
+        // watch(() => {
+        //     !!data.val && data.isValid // where isValid is a getter that also depend on data.val
+        // })
+        // ```
+        flushQueue.delete(id)
+
         flushQueue.add(id);
 
         if (flushQueue.size != 1) {
