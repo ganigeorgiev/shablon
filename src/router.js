@@ -82,7 +82,7 @@ export function router(routes, options = { fallbackPath: "#/", transition: true 
 
     return () => {
         window.removeEventListener("hashchange", onHashChange);
-    }
+    };
 }
 
 function findActiveRoute(defs, path) {

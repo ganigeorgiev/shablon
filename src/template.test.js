@@ -59,7 +59,7 @@ describe("tags creation", () => {
         const data = store({
             value: "123",
             nullable: "456",
-        })
+        });
 
         const tag = t.div({
             id: () => data.value,
@@ -79,8 +79,8 @@ describe("tags creation", () => {
         assert.strictEqual(tag.getAttribute("b"), "456", "[before] b");
         assert.strictEqual(tag.someCustomProp, "123", "[before] someCustomProp");
 
-        data.value = undefined
-        data.nullable = null
+        data.value = undefined;
+        data.nullable = null;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 

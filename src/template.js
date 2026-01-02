@@ -123,7 +123,7 @@ function tag(tagName, attrs = {}, ...children) {
                         // unset to undefined to reset custom props
                         // (note: don't call delete because it is slow)
                         if (typeof el[attr] !== "undefined") {
-                            el[attr] = undefined
+                            el[attr] = undefined;
                         }
 
                         // remove regular attribute

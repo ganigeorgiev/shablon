@@ -13,6 +13,8 @@ let unwatchedSym = Symbol();
 let onRemoveSym = Symbol();
 let skipSym = Symbol();
 let detachedSym = Symbol();
+let trackedFuncSym = Symbol();
+let optUntrackedFuncSym = Symbol();
 
 let pathSeparator = "/";
 
@@ -71,6 +73,10 @@ let pathSeparator = "/";
 export function watch(trackedFunc, optUntrackedFunc) {
     let watcher = {
         [idSym]: "_" + Math.random(),
+
+        // store reference to the functions for debugging purposes
+        [trackedFuncSym]: trackedFunc,
+        [optUntrackedFuncSym]: optUntrackedFunc,
     };
 
     allWatchers.set(watcher[idSym], watcher);
@@ -120,11 +126,11 @@ export function watch(trackedFunc, optUntrackedFunc) {
         });
 
         activeWatcher = watcher;
-        const result = trackedFunc();
+        const result = watcher[trackedFuncSym]();
 
-        if (optUntrackedFunc) {
+        if (watcher[optUntrackedFuncSym]) {
             activeWatcher = null;
-            optUntrackedFunc(result);
+            watcher[optUntrackedFuncSym](result);
         }
 
         // restore original ref (if any)
@@ -248,28 +254,31 @@ function createProxy(obj, pathWatcherIds) {
                 if (!descriptors[originalProp]._watcher) {
                     // temporary clear previous active watcher to ensure
                     // that the getter watcher will be registered as a top-level one
-                    let oldActiveWatcher = activeWatcher
+                    let oldActiveWatcher = activeWatcher;
                     activeWatcher = null;
 
-                    let getWatcher = watch(descriptors[originalProp].get.bind(obj), (result) => {
-                        if (!obj.hasOwnProperty(prop)) {
-                            Object.defineProperty(obj, prop, {
-                                writable: true,
-                                enumerable: false,
-                                value: result,
-                            });
-                        } else {
-                            receiver[prop] = result;
-                        }
-                    });
+                    let getWatcher = watch(
+                        descriptors[originalProp].get.bind(obj),
+                        (result) => {
+                            if (!obj.hasOwnProperty(prop)) {
+                                Object.defineProperty(obj, prop, {
+                                    writable: true,
+                                    enumerable: false,
+                                    value: result,
+                                });
+                            } else {
+                                receiver[prop] = result;
+                            }
+                        },
+                    );
 
                     getWatcher[onRemoveSym] = () => {
-                        descriptors[originalProp]._watcher = null
+                        descriptors[originalProp]._watcher = null;
                     };
 
-                    descriptors[originalProp]._watcher = getWatcher
+                    descriptors[originalProp]._watcher = getWatcher;
 
-                    activeWatcher = oldActiveWatcher
+                    activeWatcher = oldActiveWatcher;
                 }
             }
 
@@ -467,7 +476,7 @@ function callWatchers(obj, prop, pathWatcherIds) {
         //     !!data.val && data.isValid // where isValid is a getter that also depend on data.val
         // })
         // ```
-        flushQueue.delete(id)
+        flushQueue.delete(id);
 
         flushQueue.add(id);
 
@@ -476,6 +485,8 @@ function callWatchers(obj, prop, pathWatcherIds) {
         }
 
         queueMicrotask(() => {
+            const calls = {};
+
             let watcher;
             for (let runId of flushQueue) {
                 watcher = allWatchers.get(runId);
@@ -487,6 +498,20 @@ function callWatchers(obj, prop, pathWatcherIds) {
                 // execute only the parent because the child
                 // watchers will be invoked automatically
                 if (watcher[parentSym] && flushQueue.has(watcher[parentSym])) {
+                    continue;
+                }
+
+                calls[runId] = (calls[runId] || 0) + 1;
+
+                if (calls[runId] > 500) {
+                    // prettier-ignore
+                    console.warn(
+                        "Possible infinite loop for watcher " + runId + ":",
+                        "\nwatch(" +
+                        watcher[trackedFuncSym]?.toString() +
+                        (watcher[optUntrackedFuncSym] ? ", " + watcher[optUntrackedFuncSym].toString() : "") +
+                        ")",
+                    );
                     continue;
                 }
 

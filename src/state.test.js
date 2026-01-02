@@ -842,18 +842,18 @@ describe("getters - watcher with mixed getter and regular field (that is also a 
     const data = store({
         val: "abc",
         get isValid() {
-            return !!data.val && data.val.length > 3
+            return !!data.val && data.val.length > 3;
         },
-    })
+    });
 
-    let watchVal = false
+    let watchVal = false;
 
     watch(() => {
-        watchVal = !!data.val && data.isValid ? true : false
-    })
+        watchVal = !!data.val && data.isValid ? true : false;
+    });
 
     test("the internal get watcher should fire before the user defined watcher", async () => {
-        data.val += "d"
+        data.val += "d";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
