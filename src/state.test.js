@@ -1135,6 +1135,15 @@ describe("watch with detached child", () => {
         assert.strictEqual(fired.detached, 4, "fired.detached");
     });
 
+    test("replace detached object with primitive", async () => {
+        data.a.b = "abc";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(fired.full, undefined, "fired.full");
+        assert.strictEqual(fired.detached, undefined, "fired.detached");
+    });
+
     test("delete detached prop", async () => {
         delete data.a.b;
 

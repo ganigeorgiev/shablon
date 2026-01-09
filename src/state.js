@@ -318,11 +318,11 @@ function createProxy(obj, pathWatcherIds) {
                         } else {
                             activeObj = item;
                         }
-                    }
 
-                    // the original full nested path is no longer available (null/undefined)
-                    if (activeObj == undefined) {
-                        return activeObj;
+                        // init an empty object to ensure that the original path is still accessible
+                        if (activeObj == null) {
+                            activeObj = {};
+                        }
                     }
 
                     // update the current obj with the one from the retraced path
@@ -330,7 +330,7 @@ function createProxy(obj, pathWatcherIds) {
                 }
             }
 
-            let propVal = obj[prop];
+            let propVal = obj?.[prop];
 
             // directly return for functions (pop, push, etc.)
             if (typeof propVal == "function") {
