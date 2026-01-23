@@ -453,7 +453,6 @@ describe("reactive children", () => {
 describe("move reactive rid child", () => {
     let data, tag;
 
-
     beforeEach(() => {
         data = store({
             items: [{name: "1"}, {name: "2"}, {name: "3"}],
