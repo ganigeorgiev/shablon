@@ -282,9 +282,13 @@ function createProxy(obj, pathWatcherIds) {
                 }
             }
 
+            // @todo
+            // temporary disable detached resolver as it can cause significant performance issues with large nested objects
+            // before the final release evaluate whether it is worth having the check at all or just document it as a caveat
+            //
             // detached child?
             let isDetached;
-            if (!obj[skipSym] && obj[parentSym]) {
+            if (false && !obj[skipSym] && obj[parentSym]) {
                 let props = [];
                 let activeObj = obj;
 
