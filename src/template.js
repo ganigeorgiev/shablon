@@ -82,7 +82,6 @@ function initMutationObserver() {
 let watchFuncsSym = Symbol();
 let registeredWatchersSym = Symbol();
 let isMountedSym = Symbol();
-let cleanupFuncsSym = Symbol();
 
 function tag(tagName, attrs = {}, ...children) {
     let el = document.createElement(tagName);
@@ -171,13 +170,6 @@ function tag(tagName, attrs = {}, ...children) {
         }
         el[registeredWatchersSym] = null;
 
-        if (el[cleanupFuncsSym]) {
-            for (let cleanup of el[cleanupFuncsSym]) {
-                cleanup();
-            }
-        }
-        el[cleanupFuncsSym] = null;
-
         customUnmount?.(el);
     };
 
@@ -213,15 +205,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
 
     let oldChildren = [];
     let oldKeysMap = new Map();
-
     let elMoveBefore = el.moveBefore || el.insertBefore;
-
-    el[cleanupFuncsSym] = el[cleanupFuncsSym] || [];
-    el[cleanupFuncsSym].push(() => {
-        oldChildren = null;
-        oldKeysMap = null;
-        endPlaceholder = null;
-    });
 
     el[watchFuncsSym] = el[watchFuncsSym] || [];
     el[watchFuncsSym].push(() => {
@@ -310,7 +294,13 @@ function initChildrenFuncWatcher(el, childrenFunc) {
 
         // reorder old children
         for (let m of toMove) {
-            let before = oldChildren[m.targetPos];
+            let beforeIndex = m.targetPos
+            if (m.currentPos < m.targetPos) {
+                // move before the next element after the target because we always use moveBefore
+                beforeIndex = m.targetPos + 1;
+            }
+
+            let before = oldChildren[beforeIndex] || endPlaceholder;
             arrayMove(oldChildren, m.currentPos, m.targetPos);
             elMoveBefore.call(el, m.child, before);
         }
