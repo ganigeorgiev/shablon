@@ -1083,6 +1083,38 @@ describe("watch with optUntrackedFunc", () => {
     });
 });
 
+describe("watch optUntrackedFunc new and old arguments check", () => {
+    let result = {};
+
+    const data = store({
+        a: 0,
+    });
+
+    watch(
+        () => data.a,
+        (newVal, oldVal) => {
+            result.new = newVal;
+            result.old = oldVal;
+        },
+    );
+
+    test("init", async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(result.new, 0, "new");
+        assert.strictEqual(result.old, undefined, "old");
+    });
+
+    test("change", async () => {
+        data.a++;
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(result.new, 1, "new");
+        assert.strictEqual(result.old, 0, "old");
+    });
+});
+
 // @todo
 describe.skip("watch with detached child", () => {
     let fired = {};

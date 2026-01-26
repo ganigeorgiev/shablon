@@ -15,6 +15,7 @@ let skipSym = Symbol();
 let detachedSym = Symbol();
 let trackedFuncSym = Symbol();
 let optUntrackedFuncSym = Symbol();
+let oldValSym = Symbol();
 
 let pathSeparator = "/";
 
@@ -130,8 +131,10 @@ export function watch(trackedFunc, optUntrackedFunc) {
 
         if (watcher[optUntrackedFuncSym]) {
             activeWatcher = null;
-            watcher[optUntrackedFuncSym](result);
+            watcher[optUntrackedFuncSym](result, watcher[oldValSym]);
         }
+
+        watcher[oldValSym] = result;
 
         // restore original ref (if any)
         activeWatcher = oldActiveWatcher;
