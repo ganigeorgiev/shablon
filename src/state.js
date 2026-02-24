@@ -127,11 +127,11 @@ export function watch(trackedFunc, optUntrackedFunc) {
         });
 
         activeWatcher = watcher;
-        const result = watcher[trackedFuncSym]();
+        const result = watcher[trackedFuncSym](watcher[oldValSym], watcher);
 
         if (watcher[optUntrackedFuncSym]) {
             activeWatcher = null;
-            watcher[optUntrackedFuncSym](result, watcher[oldValSym]);
+            watcher[optUntrackedFuncSym](result, watcher[oldValSym], watcher);
         }
 
         watcher[oldValSym] = result;
@@ -242,6 +242,7 @@ function createProxy(obj, pathWatcherIds) {
                 descriptors[prop]?.get &&
                 !obj[parentSym] // for now disallow nested child getters because they leak
             ) {
+                // remove to avoid having 2 different ways of solving
                 // if not invoked inside a watch function, call the original
                 // getter to ensure that an up-to-date value is computed
                 if (!activeWatcher) {
@@ -418,11 +419,24 @@ function createProxy(obj, pathWatcherIds) {
                 value[parentSym][1] = prop;
             }
 
+            // manually fire toJSON in case a dynamic property is defined
+            // in order to trigger `JSON.stringify(data.someObject)` watchers
+            // usually used in PocketBase for change detection
+            // (the stringify results in paths such as ["someObject", "someObject/toJSON", "someObject/existingProp", ...])
+            let fireToJSON = false;
+            if (typeof oldValue == "undefined" && !obj.hasOwnProperty(prop)) {
+                fireToJSON = true;
+            }
+
             obj[prop] = value;
 
+            if (fireToJSON) {
+                callWatchers(obj, "toJSON", pathWatcherIds);
+            }
+
             // trigger only on value change
-            // (exclude length since the old value would have been already changed on access)
-            if (value != oldValue || prop === "length") {
+            // (exeption for length since the old value would have been already changed on access)
+            if (value !== oldValue || prop === "length") {
                 callWatchers(obj, prop, pathWatcherIds);
             }
 
@@ -510,7 +524,7 @@ function callWatchers(obj, prop, pathWatcherIds) {
 
                 calls[runId] = (calls[runId] || 0) + 1;
 
-                if (calls[runId] > 500) {
+                if (calls[runId] > 250) {
                     // prettier-ignore
                     console.warn(
                         "Possible infinite loop for watcher " + runId + ":",

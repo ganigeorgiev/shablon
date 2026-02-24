@@ -1115,6 +1115,43 @@ describe("watch optUntrackedFunc new and old arguments check", () => {
     });
 });
 
+
+describe("JSON.stringify with dynamic store props", () => {
+    let fired = 0;
+
+    const data = store({
+        a: {b: 1},
+    });
+
+    watch(
+        () => JSON.stringify(data.a),
+        () => {
+            fired++
+        },
+    );
+
+    beforeEach(() => {
+        fired = 0;
+    });
+
+    test("init", async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(fired, 0);
+    });
+
+    test("change existing prop", async () => {
+        data.a.b++;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(fired, 1);
+    });
+
+    test("set new prop", async () => {
+        data.a.c = 1;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        assert.strictEqual(fired, 1);
+    });
+});
+
 // @todo
 describe.skip("watch with detached child", () => {
     let fired = {};
