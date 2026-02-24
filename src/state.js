@@ -311,58 +311,6 @@ function createProxy(obj, pathWatcherIds) {
                 }
             }
 
-            // @todo
-            // temporary disable detached resolver as it can cause significant performance issues with large nested objects
-            // before the final release evaluate whether it is worth having the check at all or just document it as a caveat
-            //
-            // detached child?
-            let isDetached;
-            if (false && !obj[skipSym] && obj[parentSym]) {
-                let props = [];
-                let activeObj = obj;
-
-                // travel up to the root proxy
-                // (aka. x.a.b*.c -> x)
-                while (activeObj?.[parentSym]) {
-                    if (activeObj[detachedSym]) {
-                        isDetached = true;
-                    }
-
-                    props.push(activeObj[parentSym][1]);
-                    activeObj = activeObj[parentSym][0];
-                }
-
-                // try to access the original path but this time from
-                // the root point of view to ensure that we are always accessing
-                // an up-to-date store child reference
-                // (we want: x.a.b(old).c -> x -> x.a.b(new).c)
-                //
-                // note: this technically could "leak" but for our case it should be fine
-                // because the detached object will become again garbage collectable
-                // once the related watcher(s) are removed
-                if (isDetached) {
-                    for (let i = props.length - 1; i >= 0; i--) {
-                        activeObj[skipSym] = true;
-                        let item = activeObj?.[props[i]];
-                        activeObj[skipSym] = false;
-
-                        if (i == 0) {
-                            activeObj = item?.__raw;
-                        } else {
-                            activeObj = item;
-                        }
-
-                        // init an empty object to ensure that the original path is still accessible
-                        if (activeObj == null) {
-                            activeObj = {};
-                        }
-                    }
-
-                    // update the current obj with the one from the retraced path
-                    obj = activeObj;
-                }
-            }
-
             let propVal = obj?.[prop];
 
             // directly return for functions (pop, push, etc.)
@@ -390,22 +338,6 @@ function createProxy(obj, pathWatcherIds) {
                 let activeWatcherId = activeWatcher[idSym];
 
                 let propPaths = [currentPath];
-
-                // ---
-                // NB! Disable for now because of the nonblocking and delayed
-                // nature of the current MutationObserver implementation for the `onunmount` hook
-                // leading to unexpected and delayed watch calls in methods like `Array.map`.
-                // ---
-                // if (isDetached) {
-                //     // always construct all parent paths ("x.a.b.c" => ["a", "a.b", "a.b.c"])
-                //     // because a store child object can be passed as argument to a function
-                //     // and in that case the parents proxy get trap will not be invoked,
-                //     // and their path will not be registered
-                //     let parts = currentPath.split(pathSeparator);
-                //     while (parts.pop() && parts.length) {
-                //         propPaths.push(parts.join(pathSeparator));
-                //     }
-                // }
 
                 // initialize a watcher paths tracking set (if not already)
                 activeWatcher[pathsSubsSym] = activeWatcher[pathsSubsSym] || new Set();
