@@ -264,19 +264,23 @@ function createProxy(obj, pathWatcherIds) {
                 const activeWatcherId = activeWatcher[idSym];
 
                 // keep track of the getter references and remove it when there are no other watchers
-                descriptors[originalProp]._refs = descriptors[originalProp]._refs || new Set();
+                descriptors[originalProp]._refs =
+                    descriptors[originalProp]._refs || new Set();
                 if (!descriptors[originalProp]._refs.has(activeWatcherId)) {
-                    descriptors[originalProp]._refs.add(activeWatcherId)
+                    descriptors[originalProp]._refs.add(activeWatcherId);
 
                     let oldOnRemoveFunc = activeWatcher[onRemoveSym];
                     activeWatcher[onRemoveSym] = () => {
-                        oldOnRemoveFunc?.()
+                        oldOnRemoveFunc?.();
 
-                        descriptors[originalProp]._refs.delete(activeWatcherId)
-                        if (!descriptors[originalProp]._refs.size && descriptors[originalProp]._watcher) {
-                            removeWatcher(descriptors[originalProp]._watcher[idSym])
+                        descriptors[originalProp]._refs.delete(activeWatcherId);
+                        if (
+                            !descriptors[originalProp]._refs.size &&
+                            descriptors[originalProp]._watcher
+                        ) {
+                            removeWatcher(descriptors[originalProp]._watcher[idSym]);
                         }
-                    }
+                    };
                 }
 
                 // register an extra watcher to update the cached getter prop
