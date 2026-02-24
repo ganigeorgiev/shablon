@@ -110,6 +110,10 @@ function tag(tagName, attrs = {}, ...children) {
                     el[attr] = val;
                 }
             } else {
+                if (attr == "rid") {
+                    console.warn("rid is provided as reactive function and will not have effect for " + el + ".\nConsider using a plain number, string or object/array reference instead.")
+                }
+
                 el[watchFuncsSym] = el[watchFuncsSym] || [];
                 el[watchFuncsSym].push(() => {
                     if (!el) {
