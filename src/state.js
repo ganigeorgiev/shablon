@@ -240,19 +240,44 @@ function createProxy(obj, pathWatcherIds) {
             // getter?
             if (
                 descriptors[prop]?.get &&
-                !obj[parentSym] // for now disallow nested child getters because they leak
+                // for now disallow nested child getters to avoid excessive watch creation
+                !obj[parentSym]
             ) {
-                // remove to avoid having 2 different ways of solving
-                // if not invoked inside a watch function, call the original
-                // getter to ensure that an up-to-date value is computed
-                if (!activeWatcher) {
-                    return descriptors[prop].get.call(obj);
-                }
-
                 let originalProp = prop;
 
                 // replace with an internal property so that reactive statements can be cached
                 prop = "@@" + prop;
+
+                // if not invoked inside a watch function, call the original
+                // getter to ensure that an up-to-date value is computed
+                if (!activeWatcher) {
+                    const value = descriptors[originalProp].get.call(obj);
+
+                    // manually sync with the local value if defined already
+                    if (descriptors[originalProp]._watcher) {
+                        receiver[prop] = value;
+                    }
+
+                    return value;
+                }
+
+                const activeWatcherId = activeWatcher[idSym];
+
+                // keep track of the getter references and remove it when there are no other watchers
+                descriptors[originalProp]._refs = descriptors[originalProp]._refs || new Set();
+                if (!descriptors[originalProp]._refs.has(activeWatcherId)) {
+                    descriptors[originalProp]._refs.add(activeWatcherId)
+
+                    let oldOnRemoveFunc = activeWatcher[onRemoveSym];
+                    activeWatcher[onRemoveSym] = () => {
+                        oldOnRemoveFunc?.()
+
+                        descriptors[originalProp]._refs.delete(activeWatcherId)
+                        if (!descriptors[originalProp]._refs.size && descriptors[originalProp]._watcher) {
+                            removeWatcher(descriptors[originalProp]._watcher[idSym])
+                        }
+                    }
+                }
 
                 // register an extra watcher to update the cached getter prop
                 if (!descriptors[originalProp]._watcher) {
@@ -276,11 +301,11 @@ function createProxy(obj, pathWatcherIds) {
                         },
                     );
 
+                    descriptors[originalProp]._watcher = getWatcher;
+
                     getWatcher[onRemoveSym] = () => {
                         descriptors[originalProp]._watcher = null;
                     };
-
-                    descriptors[originalProp]._watcher = getWatcher;
 
                     activeWatcher = oldActiveWatcher;
                 }
