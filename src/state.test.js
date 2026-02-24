@@ -1115,18 +1115,17 @@ describe("watch optUntrackedFunc new and old arguments check", () => {
     });
 });
 
-
 describe("JSON.stringify with dynamic store props", () => {
     let fired = 0;
 
     const data = store({
-        a: {b: 1},
+        a: { b: 1 },
     });
 
     watch(
         () => JSON.stringify(data.a),
         () => {
-            fired++
+            fired++;
         },
     );
 

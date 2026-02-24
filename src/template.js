@@ -111,7 +111,8 @@ function tag(tagName, attrs = {}, ...children) {
                 }
             } else {
                 if (attr == "rid") {
-                    console.warn("rid is provided as reactive function and will not have effect for " + el + ".\nConsider using a plain number, string or object/array reference instead.")
+                    // prettier-ignore
+                    console.warn("rid is provided as reactive function and will not have effect for " + el + ".\nConsider using a plain number, string or object/array reference instead.");
                 }
 
                 el[watchFuncsSym] = el[watchFuncsSym] || [];
@@ -298,7 +299,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
 
         // reorder old children
         for (let m of toMove) {
-            let beforeIndex = m.targetPos
+            let beforeIndex = m.targetPos;
             if (m.currentPos < m.targetPos) {
                 // move before the next element after the target because we always use moveBefore
                 beforeIndex = m.targetPos + 1;

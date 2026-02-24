@@ -455,40 +455,42 @@ describe("move reactive rid child", () => {
 
     beforeEach(() => {
         data = store({
-            items: [{name: "1"}, {name: "2"}, {name: "3"}],
-        })
+            items: [{ name: "1" }, { name: "2" }, { name: "3" }],
+        });
 
         tag?.remove();
-        tag = t.ul(null,
-            () => {
-                return data.items.map((item) => {
-                    return t.li({ rid: item.name }, () => item.name)
-                })
-            },
-        )
+        tag = t.ul(null, () => {
+            return data.items.map((item) => {
+                return t.li({ rid: item.name }, () => item.name);
+            });
+        });
 
-        document.body.appendChild(tag)
+        document.body.appendChild(tag);
     });
 
     test("low -> high", async () => {
-        const item = data.items.shift()
-        data.items.push(item)
+        const item = data.items.shift();
+        data.items.push(item);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
-        const result = Array.from(tag.childNodes).map((n) => n.textContent).join("")
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
 
         assert.strictEqual(result, "231");
-    })
+    });
 
     test("high -> low", async () => {
-        const item = data.items.pop()
-        data.items.unshift(item)
+        const item = data.items.pop();
+        data.items.unshift(item);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
-        const result = Array.from(tag.childNodes).map((n) => n.textContent).join("")
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
 
         assert.strictEqual(result, "312");
-    })
-})
+    });
+});
