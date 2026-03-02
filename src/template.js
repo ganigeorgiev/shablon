@@ -414,7 +414,6 @@ function normalizeNode(child) {
         typeof child == "boolean"
     ) {
         let childNode = document.createTextNode(child);
-        childNode.rid = child;
         return childNode;
     }
 
