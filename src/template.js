@@ -290,7 +290,6 @@ function initChildrenFuncWatcher(el, childrenFunc) {
                 if (!okSubsequence.has(idx)) {
                     toMove.push({
                         child: oldChildren[idx],
-                        currentPos: idx,
                         targetPos: i,
                     });
                 }
@@ -298,16 +297,20 @@ function initChildrenFuncWatcher(el, childrenFunc) {
         }
 
         // reorder old children
+        let currentPos, beforeIndex, beforeElem;
         for (let m of toMove) {
-            let beforeIndex = m.targetPos;
-            if (m.currentPos < m.targetPos) {
+            // search for the current index position because the original may have changed after arrayMove
+            currentPos = oldChildren.findIndex((c) => c === m.child);
+
+            beforeIndex = m.targetPos;
+            if (currentPos < m.targetPos) {
                 // move before the next element after the target because we always use moveBefore
                 beforeIndex = m.targetPos + 1;
             }
 
-            let before = oldChildren[beforeIndex] || endPlaceholder;
-            arrayMove(oldChildren, m.currentPos, m.targetPos);
-            elMoveBefore.call(el, m.child, before);
+            beforeElem = oldChildren[beforeIndex] || endPlaceholder;
+            arrayMove(oldChildren, currentPos, m.targetPos);
+            elMoveBefore.call(el, m.child, beforeElem);
         }
 
         // insert new children

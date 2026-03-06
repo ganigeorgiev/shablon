@@ -496,3 +496,61 @@ describe("move reactive rid child", () => {
         assert.strictEqual(result, "312");
     });
 });
+
+describe("reverse list with reactive rid children (move many elements)", () => {
+    const data = store({
+        items: [
+            { name: "1" },
+            { name: "2" },
+            { name: "3" },
+            { name: "4" },
+            { name: "5" },
+            { name: "6" },
+            { name: "7" },
+            { name: "8" },
+            { name: "9" },
+        ],
+    });
+
+    const tag = t.ul(null, () => {
+        return data.items.map((item) => {
+            return t.li({ rid: item.name }, () => item.name);
+        });
+    });
+
+    document.body.appendChild(tag);
+
+    test("verify initial order", async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
+
+        assert.strictEqual(result, "123456789");
+    });
+
+    test("reverse (high->low)", async () => {
+        data.items.reverse();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
+
+        assert.strictEqual(result, "987654321");
+    });
+
+    test("reverse again (low->high)", async () => {
+        data.items.reverse();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
+
+        assert.strictEqual(result, "123456789");
+    });
+});
