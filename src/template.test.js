@@ -91,7 +91,7 @@ describe("tags creation", () => {
         assert.strictEqual(tag.someCustomProp, undefined, "[after] someCustomProp");
     });
 
-    test("children", () => {
+    test("children", async () => {
         const tag = t.div(
             null,
             t.span({ id: "span0" }),
@@ -100,10 +100,24 @@ describe("tags creation", () => {
             "test_text", // duplicate to ensure that it is not inserted with the same rid
             123,
             true,
+            null, // skip
+            undefined, // skip
+            () => {
+                // "test_child", "456", "false", "", "", end-placeholder
+                return ["test_child", 456, false, null, undefined];
+            },
         );
 
+        // before mount the reactive children shouldn't be resolved function
+        assert.strictEqual(tag.childNodes.length, 7, "childNodes.length");
+
+        // mount
+        document.body.appendChild(tag);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
         assert.strictEqual(tag.tagName, "DIV");
-        assert.strictEqual(tag.childNodes.length, 6, "childNodes.length");
+        assert.strictEqual(tag.childNodes.length, 12, "childNodes.length");
         assert.strictEqual(tag.children.length, 2, "children.length");
         assert.strictEqual(tag.children[0].id, "span0");
         assert.strictEqual(tag.children[1].id, "div1");
@@ -111,6 +125,12 @@ describe("tags creation", () => {
         assert.strictEqual(tag.childNodes[3].textContent, "test_text");
         assert.strictEqual(tag.childNodes[4].textContent, "123");
         assert.strictEqual(tag.childNodes[5].textContent, "true");
+        assert.strictEqual(tag.childNodes[6].textContent, "test_child");
+        assert.strictEqual(tag.childNodes[7].textContent, "456");
+        assert.strictEqual(tag.childNodes[8].textContent, "false");
+        assert.strictEqual(tag.childNodes[9].textContent, "");
+        assert.strictEqual(tag.childNodes[10].textContent, "");
+        assert.strictEqual(tag.childNodes[11].constructor?.name, "Comment");
         assert.strictEqual(
             tag.childNodes[1].childNodes.length,
             2,

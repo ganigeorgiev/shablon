@@ -226,7 +226,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
         if (!oldChildren?.length) {
             let fragment = document.createDocumentFragment();
             for (let i = 0; i < totalNewLength; i++) {
-                newChildren[i] = normalizeNode(newChildren[i]);
+                newChildren[i] = normalizeNode(newChildren[i], true);
 
                 fragment.appendChild(newChildren[i]);
 
@@ -254,7 +254,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
 
         // identify new items for reuse or insert
         for (let newI = 0; newI < totalNewLength; newI++) {
-            newChildren[newI] = normalizeNode(newChildren[newI]);
+            newChildren[newI] = normalizeNode(newChildren[newI], true);
 
             let rid = newChildren[newI].rid;
             if (typeof rid != "undefined") {
@@ -409,15 +409,20 @@ function toArray(val) {
     return Array.isArray(val) ? val : [val];
 }
 
-function normalizeNode(child) {
+function normalizeNode(child, castNull = false) {
+    // normalize null/undefined as empty text nodes
+    // (this is to avoid hard-crashing the application when trying to append null children)
+    if (castNull && child == null) {
+        child = "";
+    }
+
     // wrap as TextNode so that it can be "tracked" and used with appendChild or other similar methods
     if (
         typeof child == "string" ||
         typeof child == "number" ||
         typeof child == "boolean"
     ) {
-        let childNode = document.createTextNode(child);
-        return childNode;
+        return document.createTextNode(child);
     }
 
     // in case child is DOM Proxy element/array loaded from a store object
