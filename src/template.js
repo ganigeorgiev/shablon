@@ -289,28 +289,21 @@ function initChildrenFuncWatcher(el, childrenFunc) {
             orderedActiveOldIndexes.forEach((idx, i) => {
                 if (!okSubsequence.has(idx)) {
                     toMove.push({
+                        newPos: i,
                         child: oldChildren[idx],
-                        targetPos: i,
+                        insertBefore:
+                            oldChildren[orderedActiveOldIndexes[i + 1]] || endPlaceholder,
                     });
                 }
             });
         }
 
+        // ensure that the move operations are applied in the expected ordered
+        toMove.reverse();
+
         // reorder old children
-        let currentPos, beforeIndex, beforeElem;
         for (let m of toMove) {
-            // search for the current index position because the original may have changed after arrayMove
-            currentPos = oldChildren.findIndex((c) => c === m.child);
-
-            beforeIndex = m.targetPos;
-            if (currentPos < m.targetPos) {
-                // move before the next element after the target because we always use moveBefore
-                beforeIndex = m.targetPos + 1;
-            }
-
-            beforeElem = oldChildren[beforeIndex] || endPlaceholder;
-            arrayMove(oldChildren, currentPos, m.targetPos);
-            elMoveBefore.call(el, m.child, beforeElem);
+            elMoveBefore.call(el, m.child, m.insertBefore);
         }
 
         // insert new children
@@ -318,7 +311,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
             if (ins.prev) {
                 ins.prev.after(ins.child);
             } else {
-                (oldChildren[0] || endPlaceholder).before(ins.child);
+                endPlaceholder.before(ins.child);
             }
         }
 
@@ -343,11 +336,10 @@ function initChildrenFuncWatcher(el, childrenFunc) {
 
 // Returns the elements of the Longest Increasing Subsequence (LIS) for an array of indexes.
 //
-// Note that the returned sequence is in reverse order but for our case
-// it doesn't matter because we are interested only in the elements.
+// Note that the returned sequence is in reverse order but for our case it
+// doesn't matter because we are interested only in the existence of the indexes.
 //
-// For more details and visual representation of the the algorithm, please check:
-// https://en.wikipedia.org/wiki/Longest_increasing_subsequence#Efficient_algorithms
+// Ported from https://en.wikipedia.org/wiki/Longest_increasing_subsequence#Efficient_algorithms.
 function getLongestSubsequence(arr) {
     let ends = [];
     let predecessors = [];
@@ -384,21 +376,6 @@ function getLongestSubsequence(arr) {
     }
 
     return result;
-}
-
-function arrayMove(arr, from, to) {
-    if (from == to) {
-        return arr;
-    }
-
-    let dir = from > to ? -1 : 1;
-    let target = arr[from];
-
-    for (let i = from; i != to; i += dir) {
-        arr[i] = arr[i + dir];
-    }
-
-    arr[to] = target;
 }
 
 function toArray(val) {

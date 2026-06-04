@@ -472,18 +472,18 @@ describe("reactive children", () => {
     });
 });
 
-describe("move reactive rid child", () => {
+describe("move reactive rid children", () => {
     let data, tag;
 
     beforeEach(() => {
         data = store({
-            items: [{ name: "1" }, { name: "2" }, { name: "3" }],
+            items: [1, 2, 3],
         });
 
         tag?.remove();
         tag = t.ul(null, () => {
             return data.items.map((item) => {
-                return t.li({ rid: item.name }, () => item.name);
+                return t.li({ rid: item }, item);
             });
         });
 
@@ -517,24 +517,14 @@ describe("move reactive rid child", () => {
     });
 });
 
-describe("reverse list with reactive rid children (move many elements)", () => {
+describe("reverse ordered list with reactive rid children (move many elements)", () => {
     const data = store({
-        items: [
-            { name: "1" },
-            { name: "2" },
-            { name: "3" },
-            { name: "4" },
-            { name: "5" },
-            { name: "6" },
-            { name: "7" },
-            { name: "8" },
-            { name: "9" },
-        ],
+        items: [1, 2, 3, 4, 5, 6, 7, 8, 9],
     });
 
     const tag = t.ul(null, () => {
         return data.items.map((item) => {
-            return t.li({ rid: item.name }, () => item.name);
+            return t.li({ rid: item }, item);
         });
     });
 
@@ -572,5 +562,79 @@ describe("reverse list with reactive rid children (move many elements)", () => {
             .join("");
 
         assert.strictEqual(result, "123456789");
+    });
+});
+
+describe("sort unordered reactive rid children", () => {
+    let data, tag;
+
+    beforeEach(() => {
+        data = store({
+            items: [6, 5, 10, 12, 2, 16, 15, 1, 11, 4, 3, 9, 7, 8, 14, 13],
+        });
+
+        tag?.remove();
+        tag = t.ul(null, () => {
+            return data.items.map((item) => {
+                return t.li({ rid: item }, item);
+            });
+        });
+
+        document.body.appendChild(tag);
+    });
+
+    test("sort DESC", async () => {
+        data.items.sort((a, b) => b - a);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
+
+        assert.strictEqual(result, "16151413121110987654321");
+    });
+
+    test("sort ASC", async () => {
+        data.items.sort((a, b) => a - b);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
+
+        assert.strictEqual(result, "12345678910111213141516");
+    });
+});
+
+describe("remove + new + sort rid children", () => {
+    let data, tag;
+
+    beforeEach(() => {
+        data = store({
+            items: [7, 0, 5, 3, 4, 2, 6, 9],
+        });
+
+        tag?.remove();
+        tag = t.ul(null, () => {
+            return data.items.map((item) => {
+                return t.li({ rid: item }, item);
+            });
+        });
+
+        document.body.appendChild(tag);
+    });
+
+    test("remove + new + sort all at once", async () => {
+        data.items = [0, 1, 2, 4, 5, 7, 8, 9, 10];
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        const result = Array.from(tag.childNodes)
+            .map((n) => n.textContent)
+            .join("");
+
+        assert.strictEqual(result, "0124578910");
     });
 });
