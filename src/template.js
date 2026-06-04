@@ -298,12 +298,10 @@ function initChildrenFuncWatcher(el, childrenFunc) {
             });
         }
 
-        // ensure that the move operations are applied in the expected ordered
-        toMove.reverse();
-
         // reorder old children
-        for (let m of toMove) {
-            elMoveBefore.call(el, m.child, m.insertBefore);
+        // (from end to start to avoid unnecessery moveBefore child lookups)
+        for (let i = toMove.length - 1; i >= 0; i--) {
+            elMoveBefore.call(el, toMove[i].child, toMove[i].insertBefore);
         }
 
         // insert new children

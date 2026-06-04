@@ -1,5 +1,5 @@
 {
-    "version": "0.0.1-rc.18",
+    "version": "0.0.1-rc.19",
     "name": "shablon",
     "description": "No-build JavaScript framework for Single-page applications",
     "author": "Gani Georgiev",
@@ -19,7 +19,7 @@
     "scripts": {
         "format": "npx prettier ./src --write",
         "build": "rolldown -c",
-        "prepublishOnly": "npm run format && npm run build"
+        "prepublishOnly": "npm run format && node --test && npm run build"
     },
     "devDependencies": {
         "jsdom": "^26.0.0",
