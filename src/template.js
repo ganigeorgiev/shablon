@@ -309,7 +309,7 @@ function initChildrenFuncWatcher(el, childrenFunc) {
             if (ins.prev) {
                 ins.prev.after(ins.child);
             } else {
-                endPlaceholder.before(ins.child);
+                (oldChildren[orderedActiveOldIndexes[0] || 0] || endPlaceholder).before(ins.child);
             }
         }
 

@@ -613,7 +613,7 @@ describe("remove + new + sort rid children", () => {
 
     beforeEach(() => {
         data = store({
-            items: [7, 0, 5, 3, 4, 2, 6, 9],
+            items: [7, 5, 3, 4, 2, 6, 9],
         });
 
         tag?.remove();
