@@ -92,6 +92,13 @@ function findActiveRoute(defs, path) {
             continue;
         }
 
+        // try to decode the path params
+        for (let key in match.groups) {
+            try {
+                match.groups[key] = decodeURIComponent(match.groups[key]);
+            } catch {}
+        }
+
         // extract query params (the value is always stored as array)
         let query = {};
         let rawQuery = path.split("?")?.[1];

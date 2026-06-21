@@ -44,36 +44,36 @@ describe("router", () => {
     });
 
     test("home (with query params)", async () => {
-        window.location.hash = "#/?a=1&b=2&a=3";
+        window.location.hash = "#/?a=1&b=2&a=3 4";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(match.path, window.location.hash, "path");
-        assert.deepStrictEqual(match.query, { a: ["1", "3"], b: ["2"] }, "query");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
         assert.deepStrictEqual(match.params, {}, "params");
         assert.deepStrictEqual(destroyed, {}, "destroyed");
     });
 
-    test("route with 1 parameter (with special chars)", async () => {
-        window.location.hash = "#/users/ex.am-%ple_/abc?a=1&b=2&a=3";
+    test("route with 1 parameter (with invalid special chars)", async () => {
+        window.location.hash = "#/users/ex.am-%ple_/abc?a=1&b=2&a=3 4";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(match.pattern, "#/users/{id}/abc", "pattern");
-        assert.deepStrictEqual(match.query, { a: ["1", "3"], b: ["2"] }, "query");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
         assert.strictEqual(match.params.id, "ex.am-%ple_", "params.id");
         assert.deepStrictEqual(destroyed, {}, "destroyed");
     });
 
     test("route with 2 parameters", async () => {
-        window.location.hash = "#/users/example/abc/delete?a=1&b=2&a=3";
+        window.location.hash = "#/users/ex%20ample/abc/d%20elete?a=1&b=2&a=3%204";
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         assert.strictEqual(match.pattern, "#/users/{id}/abc/{action}", "pattern");
-        assert.deepStrictEqual(match.query, { a: ["1", "3"], b: ["2"] }, "query");
-        assert.strictEqual(match.params.id, "example", "params.id");
-        assert.strictEqual(match.params.action, "delete", "params.action");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
+        assert.strictEqual(match.params.id, "ex ample", "params.id");
+        assert.strictEqual(match.params.action, "d elete", "params.action");
         assert.deepStrictEqual(destroyed, {}, "destroyed");
     });
 
