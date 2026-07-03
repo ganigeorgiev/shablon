@@ -95,7 +95,8 @@ function findActiveRoute(defs, path) {
         // try to decode the path params
         for (let key in match.groups) {
             try {
-                match.groups[key] = decodeURIComponent(match.groups[key]);
+                // note: could be undefined in case of empty wildcard
+                match.groups[key] = match.groups[key] ? decodeURIComponent(match.groups[key]) : "";
             } catch {}
         }
 
@@ -105,8 +106,8 @@ function findActiveRoute(defs, path) {
         if (rawQuery) {
             let searchParams = new URLSearchParams(rawQuery);
             for (let [key, value] of searchParams.entries()) {
-                if (!Array.isArray(query[key])) {
-                    query[key] = query[key] ? [query[key]] : [];
+                if (!query.hasOwnProperty(key)) {
+                    query[key] = [];
                 }
                 query[key].push(value);
             }
@@ -126,17 +127,30 @@ function findActiveRoute(defs, path) {
 function prepareRoutes(routes) {
     let defs = [];
 
-    for (let path in routes) {
+    routesLoop: for (let path in routes) {
         let parts = path.split("/");
+
+        let wildcardExpr = "";
+        if (path.endsWith("...}")) {
+            let lastPart = parts.pop()
+            wildcardExpr = "(?:\/(?<" + lastPart.substring(1, lastPart.length - 4) + ">[^#?]*))?"
+        }
+
         for (let i in parts) {
             if (
                 parts[i].length > 2 &&
                 parts[i].startsWith("{") &&
                 parts[i].endsWith("}")
             ) {
-                // param
-                parts[i] =
-                    "(?<" + parts[i].substring(1, parts[i].length - 1) + ">[^\\/#?]+)";
+                let paramName = parts[i].substring(1, parts[i].length - 1)
+
+                if (paramName.endsWith("...")) {
+                    console.warn("skipping invalid route - wildcard param can be only at the end:", path);
+                    continue routesLoop
+                }
+
+                // single param
+                parts[i] = "(?<" + paramName + ">[^\\/#?]+)";
             } else {
                 // regular path segment
                 parts[i] = RegExp.escape(parts[i]);
@@ -144,11 +158,30 @@ function prepareRoutes(routes) {
         }
 
         defs.push({
-            regex: new RegExp("^" + parts.join("\\/") + "(?:[\?\#].*)?$"),
+            regex: new RegExp("^" + parts.join("\\/") + wildcardExpr + "(?:[\?\#].*)?$"),
             pattern: path,
             handler: routes[path],
-        });
+            wildcard: wildcardExpr != "",
+        })
     }
+
+    // wildcard routes are sorted last
+    defs.sort((a, b) => {
+        if (a.wildcard && !b.wildcard) {
+            return 1
+        }
+
+        if (!a.wildcard && b.wildcard) {
+            return -1
+        }
+
+        // prioritize longer wildcards first as they are more concrete
+        if (a.wildcard && b.wildcard) {
+            return b.pattern.length - a.pattern.length
+        }
+
+        return 0
+    })
 
     return defs;
 }

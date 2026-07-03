@@ -14,12 +14,28 @@ describe("router", () => {
 
     beforeEach(() => {
         match = {};
+        destroyed = {};
     });
 
     const routerDestroy = router({
         "#/": (route) => {
             match = route;
         },
+
+        // invalid wildcard placement
+        "#/a/{rest...}/b": (route) => {
+            match = route;
+        },
+
+        // before the more concrete wildcard route to ensure sort call
+        "#/users/{id}/{rest...}": (route) => {
+            match = route;
+        },
+
+        "#/users/{id}/abc/{rest...}": (route) => {
+            match = route;
+        },
+
         "#/users/{id}/abc/{action}": (route) => {
             match = route;
 
@@ -27,6 +43,7 @@ describe("router", () => {
                 destroyed = route;
             };
         },
+
         "#/users/{id}/abc": (route) => {
             match = route;
         },
@@ -89,6 +106,68 @@ describe("router", () => {
         assert.deepStrictEqual(match.query, {}, "query");
         assert.deepStrictEqual(match.params, {}, "params");
         assert.strictEqual(destroyed.pattern, "#/users/{id}/abc/{action}", "destroyed");
+    });
+
+    test("concrete empty wildcard", async () => {
+        window.location.hash = "#/users/ex%20ample/abc/?a=1&b=2&a=3%204";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(match.pattern, "#/users/{id}/abc/{rest...}", "pattern");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
+        assert.strictEqual(match.params.id, "ex ample", "params.id");
+        assert.strictEqual(match.params.rest, "", "params.rest");
+        assert.deepStrictEqual(destroyed, {}, "destroyed");
+    });
+
+    test("concrete non-empty wildcard", async () => {
+        window.location.hash = "#/users/ex%20ample/abc/d/e/f?a=1&b=2&a=3%204";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(match.pattern, "#/users/{id}/abc/{rest...}", "pattern");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
+        assert.strictEqual(match.params.id, "ex ample", "params.id");
+        assert.strictEqual(match.params.rest, "d/e/f", "params.rest");
+        assert.deepStrictEqual(destroyed, {}, "destroyed");
+    });
+
+    test("broader empty wildcard", async () => {
+        window.location.hash = "#/users/ex%20ample?a=1&b=2&a=3%204";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(match.pattern, "#/users/{id}/{rest...}", "pattern");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
+        assert.strictEqual(match.params.id, "ex ample", "params.id");
+        assert.strictEqual(match.params.rest, "", "params.rest");
+        assert.deepStrictEqual(destroyed, {}, "destroyed");
+    });
+
+    test("broader non-empty wildcard", async () => {
+        window.location.hash = "#/users/ex%20ample/a/b/c%20d?a=1&b=2&a=3%204";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(match.pattern, "#/users/{id}/{rest...}", "pattern");
+        assert.deepStrictEqual(match.query, { a: ["1", "3 4"], b: ["2"] }, "query");
+        assert.strictEqual(match.params.id, "ex ample", "params.id");
+        assert.strictEqual(match.params.rest, "a/b/c d", "params.rest");
+        assert.deepStrictEqual(destroyed, {}, "destroyed");
+    });
+
+    test("invalid wildcard placement (skip rule)", async () => {
+        window.location.hash = "#/a/1/2/b";
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        // wait again to ensure that it is cheched after the redirect event listener change
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(match.pattern, "#/", "pattern");
+        assert.deepStrictEqual(match.query, {}, "query");
+        assert.deepStrictEqual(match.params, {}, "params");
+        assert.deepStrictEqual(destroyed, {}, "destroyed");
     });
 
     test("after routerDestroy no router handlers should fire", async () => {

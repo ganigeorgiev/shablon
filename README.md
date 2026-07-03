@@ -275,11 +275,30 @@ router({
             t.div({ textContent: "Homepage!"})
         )
     },
+
+    // Route with simple parameter(s).
+    //
+    // Matches `#/users/john`, `#/users/jane`, etc.
     "#/users/{id}": (route) => {
         document.getElementById(app).replaceChildren(
             t.div({ textContent: "User " + route.params.id })
         )
         return () => { console.log("cleanup...") }
+    },
+
+    // Route with wildcard parameter (its value is optional and always must be at the end).
+    //
+    // Matches `#/files/`, `#/files/a`, `#/files/a/b`, `#/files/a/b/c`, etc.
+    // It will match also `#/files` (without trailing slash) in case there is no other more specific route already registered for it
+    // (this is similar to how the standard Go routes works with the exception that we don't redirect to a trailing slash path since the router operates on the client-side).
+    //
+    // Note that wildcard routes are always with lowest priority no matter of their registration position,
+    // aka. non-wildcard routes are prioritized over others with wildcard parameter.
+    "#/files/{path...}": (route) => {
+        document.getElementById(app).replaceChildren(
+            // if the url is `#/files/a/b/c` then params.path would be `a/b/c`
+            t.div({ textContent: "Path " + route.params.path })
+        )
     },
 })
 ```
