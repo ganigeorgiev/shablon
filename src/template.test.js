@@ -638,3 +638,95 @@ describe("remove + new + sort rid children", () => {
         assert.strictEqual(result, "0124578910");
     });
 });
+
+describe("ensure that watchers are reassigned on reindexed rid elements with dynamic props", () => {
+    test("splice and then update the dynamic props of elements after the spliced", async () => {
+        const data = store({
+            items: [
+                { name: "item0" },
+                { name: "item1" },
+                { name: "item2" },
+                { name: "item3" },
+                { name: "item4" },
+            ],
+        });
+
+        const calls = {};
+
+        const tag = t.ul(null, () => {
+            return data.items.map((item) => {
+                return t.li({ rid: item }, () => {
+                    calls[item.name] = item._dynamic ?? -1;
+                    return item._dynamic;
+                });
+            });
+        });
+
+        document.body.appendChild(tag);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        data.items.splice(1, 1);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        data.items[1]._dynamic = 2;
+        data.items[3]._dynamic = 4;
+
+        tag.remove();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(calls["item0"], -1);
+        assert.strictEqual(calls["item1"], -1);
+        assert.strictEqual(calls["item2"], 2);
+        assert.strictEqual(calls["item3"], -1);
+        assert.strictEqual(calls["item4"], 4);
+    });
+
+    test("unshift and then update the dynamic props of elements after the unshifted", async () => {
+        const data = store({
+            items: [
+                { name: "item0" },
+                { name: "item1" },
+                { name: "item2" },
+                { name: "item3" },
+                { name: "item4" },
+            ],
+        });
+
+        const calls = {};
+
+        const tag = t.ul(null, () => {
+            return data.items.map((item) => {
+                return t.li({ rid: item }, () => {
+                    calls[item.name] = item._dynamic ?? -1;
+                    return item._dynamic;
+                });
+            });
+        });
+
+        document.body.appendChild(tag);
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        data.items.unshift({ name: "item_new" });
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        data.items[1]._dynamic = 0;
+        data.items[3]._dynamic = 2;
+        data.items[5]._dynamic = 4;
+
+        tag.remove();
+
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        assert.strictEqual(calls["item_new"], -1);
+        assert.strictEqual(calls["item0"], 0);
+        assert.strictEqual(calls["item1"], -1);
+        assert.strictEqual(calls["item2"], 2);
+        assert.strictEqual(calls["item3"], -1);
+        assert.strictEqual(calls["item4"], 4);
+    });
+});

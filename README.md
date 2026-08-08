@@ -6,7 +6,7 @@ Shablon - No-build JavaScript frontend framework
 >
 > **Don't use it yet - it hasn't been actually tested in real applications and it may change without notice!**
 
-**Shablon** _("template" in Bulgarian)_ is a ~6KB JS framework that comes with deeply reactive state management, plain JS extendable templates and hash-based router.
+**Shablon** _("template" in Bulgarian)_ is a ~7KB JS framework that comes with deeply reactive state management, plain JS extendable templates and hash-based router.
 
 Shablon has very small learning curve (**4 main exported functions**) and it is suitable for building Single-page applications (SPA):
 

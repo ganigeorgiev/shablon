@@ -12,7 +12,6 @@ let pathsSubsSym = Symbol();
 let unwatchedSym = Symbol();
 let onRemoveSym = Symbol();
 let skipSym = Symbol();
-let detachedSym = Symbol();
 let trackedFuncSym = Symbol();
 let optUntrackedFuncSym = Symbol();
 let oldValSym = Symbol();
@@ -127,7 +126,7 @@ export function watch(trackedFunc, optUntrackedFunc) {
         });
 
         activeWatcher = watcher;
-        const result = watcher[trackedFuncSym](watcher[oldValSym], watcher);
+        let result = watcher[trackedFuncSym](watcher[oldValSym], watcher);
 
         if (watcher[optUntrackedFuncSym]) {
             activeWatcher = null;
@@ -251,7 +250,7 @@ function createProxy(obj, pathWatcherIds) {
                 // if not invoked inside a watch function, call the original
                 // getter to ensure that an up-to-date value is computed
                 if (!activeWatcher) {
-                    const value = descriptors[originalProp].get.call(obj);
+                    let value = descriptors[originalProp].get.call(obj);
 
                     // manually sync with the local value if defined already
                     if (descriptors[originalProp]._watcher) {
@@ -261,7 +260,7 @@ function createProxy(obj, pathWatcherIds) {
                     return value;
                 }
 
-                const activeWatcherId = activeWatcher[idSym];
+                let activeWatcherId = activeWatcher[idSym];
 
                 // keep track of the getter references and remove it when there are no other watchers
                 descriptors[originalProp]._refs =
@@ -370,13 +369,30 @@ function createProxy(obj, pathWatcherIds) {
 
             let oldValue = obj[prop];
 
-            // mark as "detached" in case a proxy child object/array is being replaced
-            if (oldValue?.[parentSym]) {
-                oldValue[detachedSym] = true;
-            }
+            // update the stored parent reference in case of index change
+            // (e.g. unshift, splice, etc.)
+            if (
+                value?.[parentSym] &&
+                Array.isArray(obj) &&
+                !isNaN(prop) &&
+                value[parentSym][1] != prop
+            ) {
+                // reassign old watchers to the new index
+                let oldPath = getPath(obj, value[parentSym][1]);
+                let newPath = getPath(obj, prop);
+                for (let item of pathWatcherIds) {
+                    if (
+                        // exact match
+                        item[0] == oldPath ||
+                        // child path
+                        item[0].startsWith(oldPath + pathSeparator)
+                    ) {
+                        pathWatcherIds.delete(item[0]);
+                        pathWatcherIds.set(item[0].replace(oldPath, newPath), item[1]);
+                    }
+                }
 
-            // update the stored parent reference in case of index change (e.g. unshift)
-            if (value?.[parentSym] && Array.isArray(obj) && !isNaN(prop)) {
+                // set new index ref
                 value[parentSym][1] = prop;
             }
 
@@ -409,7 +425,7 @@ function createProxy(obj, pathWatcherIds) {
 
                 let currentPath = getPath(obj, prop);
 
-                for (const item of pathWatcherIds) {
+                for (let item of pathWatcherIds) {
                     if (
                         // exact match
                         item[0] == currentPath ||
@@ -467,7 +483,7 @@ function callWatchers(obj, prop, pathWatcherIds) {
         }
 
         queueMicrotask(() => {
-            const calls = {};
+            let calls = {};
 
             let watcher;
             for (let runId of flushQueue) {

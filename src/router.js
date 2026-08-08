@@ -96,7 +96,9 @@ function findActiveRoute(defs, path) {
         for (let key in match.groups) {
             try {
                 // note: could be undefined in case of empty wildcard
-                match.groups[key] = match.groups[key] ? decodeURIComponent(match.groups[key]) : "";
+                match.groups[key] = match.groups[key]
+                    ? decodeURIComponent(match.groups[key])
+                    : "";
             } catch {}
         }
 
@@ -132,8 +134,9 @@ function prepareRoutes(routes) {
 
         let wildcardExpr = "";
         if (path.endsWith("...}")) {
-            let lastPart = parts.pop()
-            wildcardExpr = "(?:\/(?<" + lastPart.substring(1, lastPart.length - 4) + ">[^#?]*))?"
+            let lastPart = parts.pop();
+            wildcardExpr =
+                "(?:\/(?<" + lastPart.substring(1, lastPart.length - 4) + ">[^#?]*))?";
         }
 
         for (let i in parts) {
@@ -142,11 +145,14 @@ function prepareRoutes(routes) {
                 parts[i].startsWith("{") &&
                 parts[i].endsWith("}")
             ) {
-                let paramName = parts[i].substring(1, parts[i].length - 1)
+                let paramName = parts[i].substring(1, parts[i].length - 1);
 
                 if (paramName.endsWith("...")) {
-                    console.warn("skipping invalid route - wildcard param can be only at the end:", path);
-                    continue routesLoop
+                    console.warn(
+                        "skipping invalid route - wildcard param can be only at the end:",
+                        path,
+                    );
+                    continue routesLoop;
                 }
 
                 // single param
@@ -162,26 +168,26 @@ function prepareRoutes(routes) {
             pattern: path,
             handler: routes[path],
             wildcard: wildcardExpr != "",
-        })
+        });
     }
 
     // wildcard routes are sorted last
     defs.sort((a, b) => {
         if (a.wildcard && !b.wildcard) {
-            return 1
+            return 1;
         }
 
         if (!a.wildcard && b.wildcard) {
-            return -1
+            return -1;
         }
 
         // prioritize longer wildcards first as they are more concrete
         if (a.wildcard && b.wildcard) {
-            return b.pattern.length - a.pattern.length
+            return b.pattern.length - a.pattern.length;
         }
 
-        return 0
-    })
+        return 0;
+    });
 
     return defs;
 }
