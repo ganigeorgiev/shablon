@@ -39,20 +39,25 @@
  * @param {Object} [options]
  * @param {string} [options.fallbackPath]
  * @param {boolean} [options.transition]
+ * @param {boolean} [options.pretty] If true, enables pretty URLs and uses the [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation), otherwise fallbacks to hash-based routes.
  * @param {function} Destroy function.
  */
-export function router(routes, options = { fallbackPath: "#/", transition: true }) {
+export function router(routes, options = {}) {
     let defs = prepareRoutes(routes);
 
-    let prevDestroy;
+    options = Object.assign({ pretty: false, transition: false }, options);
+    if (!options.fallbackPath) {
+        options.fallbackPath = options.pretty ? "/" : "#/";
+    }
 
-    let onHashChange = () => {
-        let path = window.location.hash;
+    let prevDestroy;
+    function onchange() {
+        let path = strategy.path;
 
         let route = findActiveRoute(defs, path);
         if (!route) {
             if (options.fallbackPath != path) {
-                window.location.hash = options.fallbackPath;
+                strategy.path = options.fallbackPath;
                 return;
             }
 
@@ -74,16 +79,91 @@ export function router(routes, options = { fallbackPath: "#/", transition: true 
         } else {
             navigate();
         }
-    };
+    }
 
-    window.addEventListener("hashchange", onHashChange);
+    let strategy = options.pretty
+        ? defaultStrategies.navigation(onchange)
+        : defaultStrategies.hash(onchange);
 
-    onHashChange();
+    onchange();
 
-    return () => {
-        window.removeEventListener("hashchange", onHashChange);
+    return function () {
+        prevDestroy?.();
+        strategy.destroy();
+        strategy = null;
     };
 }
+
+const defaultStrategies = {
+    hash(onchangeHandler) {
+        window.addEventListener("hashchange", onchangeHandler);
+
+        return {
+            get path() {
+                return window.location.hash || "#/";
+            },
+            set path(newPath) {
+                window.location.hash = newPath;
+            },
+            destroy() {
+                window.removeEventListener("hashchange", onchangeHandler);
+            },
+        };
+    },
+    navigation(onchangeHandler) {
+        // https://web.dev/blog/baseline-navigation-api
+        let navigateListener = (e) => {
+            if (
+                !e.canIntercept ||
+                // if this is just a hashChange, let the browser handle scrolling to the content
+                e.hashChange ||
+                // if this is a download, let the browser perform the download
+                e.downloadRequest ||
+                // don't intercept page reloads
+                e.navigationType == "reload"
+            ) {
+                return;
+            }
+
+            let url = new URL(e.destination.url);
+
+            // intercept navigation and call the registered route handler
+            e.intercept({
+                handler() {
+                    // escape hatch to allow updating the current app URL
+                    // without triggering route navigation, for example:
+                    //
+                    // ```js
+                    // navigation.navigate(newURL, {
+                    //     state: { nonavigate: true },
+                    //     history: "push",
+                    // })
+                    // ```
+                    const state = e.destination.getState();
+                    if (state?.nonavigate) {
+                        return;
+                    }
+
+                    return onchangeHandler(url.pathname + url.search);
+                },
+            });
+        };
+
+        navigation.addEventListener("navigate", navigateListener);
+
+        return {
+            get path() {
+                return (window.location.pathname || "/") + window.location.search;
+            },
+            set path(newPath) {
+                navigation.navigate(newPath);
+            },
+            destroy() {
+                navigation.removeEventListener("navigate", navigateListener);
+            },
+        };
+    },
+};
 
 function findActiveRoute(defs, path) {
     for (let def of defs) {

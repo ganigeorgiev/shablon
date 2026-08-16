@@ -8,7 +8,9 @@ globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 globalThis.MutationObserver = dom.window.MutationObserver;
 
-describe("router", () => {
+// @todo consider adding tests for the pretty router once the navigation API is supported in JSDOM
+
+describe("hash router", () => {
     let match = {};
     let destroyed = {};
 

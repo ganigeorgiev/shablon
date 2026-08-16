@@ -6,7 +6,7 @@ Shablon - No-build JavaScript frontend framework
 >
 > **Don't use it yet - it hasn't been actually tested in real applications and it may change without notice!**
 
-**Shablon** _("template" in Bulgarian)_ is a ~7KB JS framework that comes with deeply reactive state management, plain JS extendable templates and hash-based router.
+**Shablon** _("template" in Bulgarian)_ is a ~8KB JS framework that comes with deeply reactive state management, plain JS extendable templates and a simple router.
 
 Shablon has very small learning curve (**4 main exported functions**) and it is suitable for building Single-page applications (SPA):
 
@@ -257,14 +257,14 @@ Each constructed tag has 3 additional optional lifecycle attributes:
 <details>
 <summary><strong id="api.router">router(routes, options)</strong></summary>
 
-`router(routes, options = { fallbackPath: "#/", transition: true })` initializes a hash-based client-side router by loading the provided routes configuration and listens for hash navigation changes.
+`router(routes, options = { fallbackPath: "#/", pretty: false, transition: false })` initializes a hash-based (default) or pretty URLs client-side router by loading the provided routes configuration and listens for navigation changes.
 
 `routes` is a key-value object where:
 - the key must be a string path such as `#/a/b/{someParam}`
 - value is a route handler function that executes every time the page hash matches with the route's path
     _(the route handler can return a "destroy" function that is invoked when navigating away from that route)_
 
-Note that by default the router expects to have at least one "#/" route that will be also used as fallback in case the user navigate to a missing page.
+Note that by default the router expects to have at least one route matching `fallbackPath` in case the user navigate to a missing page.
 
 For example:
 
@@ -301,6 +301,43 @@ router({
         )
     },
 })
+```
+
+The same example as above but with enabled "pretty urls" (relies on the [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation)):
+
+```js
+router({
+    "/": (route) => {
+        document.getElementById(app).replaceChildren(
+            t.div({ textContent: "Homepage!"})
+        )
+    },
+
+    // Route with simple parameter(s).
+    //
+    // Matches `/users/john`, `/users/jane`, etc.
+    "/users/{id}": (route) => {
+        document.getElementById(app).replaceChildren(
+            t.div({ textContent: "User " + route.params.id })
+        )
+        return () => { console.log("cleanup...") }
+    },
+
+    // Route with wildcard parameter (its value is optional and always must be at the end).
+    //
+    // Matches `/files/`, `/files/a`, `/files/a/b`, `/files/a/b/c`, etc.
+    // It will match also `/files` (without trailing slash) in case there is no other more specific route already registered for it
+    // (this is similar to how the standard Go routes works with the exception that we don't redirect to a trailing slash path since the router operates on the client-side).
+    //
+    // Note that wildcard routes are always with lowest priority no matter of their registration position,
+    // aka. non-wildcard routes are prioritized over others with wildcard parameter.
+    "/files/{path...}": (route) => {
+        document.getElementById(app).replaceChildren(
+            // if the url is `/files/a/b/c` then params.path would be `a/b/c`
+            t.div({ textContent: "Path " + route.params.path })
+        )
+    },
+}, { pretty: true }) // if `fallbackPath` is not explicitly set and pretty:true, `fallbackPath` is set to "/"
 ```
 
 `router` returns an optional destroy function that could be used to remove the already registered listeners, allowing you to initialize a new router.
