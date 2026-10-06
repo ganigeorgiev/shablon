@@ -1,9 +1,9 @@
 {
-    "version": "0.0.1-rc.24",
+    "version": "0.0.1-rc.25",
     "name": "shablon",
     "description": "No-build JavaScript framework for Single-page applications",
     "author": "Gani Georgiev",
-    "license": "MIT",
+    "license": "0BSD",
     "type": "module",
     "exports": "./index.js",
     "repository": {
