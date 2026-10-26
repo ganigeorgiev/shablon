@@ -1,3 +1,8 @@
+**⚠️ The project has moved to https://ganigeorgiev.com/shablon.**
+
+---
+
+
 Shablon - No-build JavaScript frontend framework
 ======================================================================
 
